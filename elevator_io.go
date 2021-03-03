@@ -7,6 +7,7 @@ import "fmt"
 
 const _pollRate = 20 * time.Millisecond
 
+var _numButtons = 10
 var _initialized bool = false
 var _numFloors int = 4
 var _mtx sync.Mutex
@@ -78,6 +79,7 @@ func SetStopLamp(value bool) {
 	_conn.Write([]byte{5, toByte(value), 0, 0})
 }
 
+//
 func PollButtons(receiver chan<- ButtonEvent) {
 	prev := make([][3]bool, _numFloors)
 	for {
