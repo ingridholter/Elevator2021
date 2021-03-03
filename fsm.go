@@ -3,6 +3,7 @@ package fsm
 import (
 	. "fmt"
 	. "./elevio" //how to import this correctly?
+	. "time"
 )
 
 type elevBehaviour int
@@ -20,6 +21,12 @@ type elevState struct {
 	dirn elevio.MotorDirection
 	behaviour elevBehaviour
 	requests[_numFloors][_numButtons] int
+}
+
+func timerDoor() { //funker som en sleep i 3 sekunder
+
+	timer := time.NewTimer(3*time.Second)
+	<-timer.C
 }
 
 func onInitBetweenFloors(){
@@ -97,4 +104,5 @@ func onFloorTimeOut(){
 	}
 	//print state?
 }
+
 

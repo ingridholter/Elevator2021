@@ -1,10 +1,20 @@
 package main
+import(
+	"time"
+	"fmt"
+)
+func timerDoor() {
 
-import "elevio"
-import "fmt"
+	timer := time.NewTimer(3*time.Second)
+	<-timer.C
+}
+
+
 
 func main() {
-
+	timerDoor()
+	fmt.Println("time out")
+/*
 	numFloors := 4
 
 	elevio.Init("localhost:15657", numFloors)
@@ -57,4 +67,6 @@ func main() {
 			}
 		}
 	}
+	*/
+	
 }
