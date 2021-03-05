@@ -1,64 +1,50 @@
-package fsm
+package main
 
 import (
 	. "fmt"
-	. "./elevio" //how to import this correctly?
+	. "./elevio"
+	. "./config"
 )
 
-type elevBehaviour int
-
-
-const (
-	EBmoving elevBehaviour = 0
-	EBstop = 1
-	EBdoorOpen = 2
-	EBidle = 3
-)
-
-type elevState struct {
-	floor int
-	dirn elevio.MotorDirection
-	behaviour elevBehaviour
-	requests[_numFloors][_numButtons] int
-}
+var elevator elevState //elevator state variable
 
 func onInitBetweenFloors(){
 	SetMotorDirection(MD_Down)
-	elevState.dirn = MD_Down
-	elevState.behaviour = EBmoving
+	elevator.dirn = MD_Down
+	elevator.behaviour = EBmoving
 }
 
 func setLights(elev elevState){
-	for floor := 0; i <_numFloors; floor++{
+	for floor := 0; floor <_numFloors; floor++{
 		for btn := 0; btn < _numButtons; btn++{
-			SetButtonLamp(btn, floor,true) //only turn on lights not off
+			SetButtonLamp(btn, floor,elev.requests[floor][btn]) //requests == 0/1 is this false/true?
 		}
 	}
+}
 
-
-func onRequestButtonPress(btnFloor int,btnType elevio.ButtonType){
-	switch elevState.behaviour{
+func onRequestButtonPress(btnFloor int,btnType ButtonType){
+	switch elevator.behaviour{
 	case EBdoorOpen:
-		if(elevState.floor==btnFloor){
+		if(elevator.floor==btnFloor){
 			//start timer for door
 		}else{
-			elevState.requests[btnFloor][btnType] =1
+			elevator.requests[btnFloor][btnType] =1
 		}
 	case EBmoving:
-		elevState.requests[btnFloor][btnType] =1
+		elevator.requests[btnFloor][btnType] =1
 	case EBidle:
-		if(elevState.floor ==btnFloor){
+		if(elevator.floor ==btnFloor){
 			SetDoorOpenLamp(true)
 			//timer start
-			elevState.behaviour = EBdoorOpen
+			elevator.behaviour = EBdoorOpen
 		}else{
-			elevState.requests[btnFloor][btnType] =1
-			elevState.dirn = //need logic for deciding direction
-			SetMotorDirection(elevState.dirn)
-			elevState.behaviour = EBmoving
+			elevator.requests[btnFloor][btnType] =1
+			elevator.dirn = requests_chooseDirection(elevator)
+			SetMotorDirection(elevator.dirn)
+			elevator.behaviour = EBmoving
 		}
 	}
-	//sett the correct lights
+	setLights(elevator)
 	//can print the state of elevator for debugg process
 }
 
@@ -66,16 +52,16 @@ func onFloorArrival(newFloor int){
 	//can print the new floor and the state of elevator
 
 	elevator.floor= newFloor
-	elevio.SetFloorIndicator(elevator.floor)
+	SetFloorIndicator(elevator.floor)
 	switch elevator.behaviour {
 	case EBmoving:
-		if(){//if elevator is requested 
-			elevState.dirn = MD_Down
-			elevio.SetDoorOpenLamp(true)
-			//clear the order we have done
+		if(requestShouldStop(elevator)){
+			elevator.dirn = EBstop 
+			SetDoorOpenLamp(true)
+			//clear the order we have done elevator = request_clearAtCurrentFloor(elevator)
 			//start timer for door
-			//set lights for the orders
-			elevState.behaviour = EBdoorOpen
+			setLights(elevator)
+			elevator.behaviour = EBdoorOpen
 		}
 	} 
 	//can print state 
@@ -86,13 +72,13 @@ func onFloorTimeOut(){
 
 	switch elevator.behaviour {
 	case EBdoorOpen:
-		elevState.dirn =//choose direction based on reqests
-		elevio.SetDoorOpenLamp(false)
-		elevState.dirn = elevator.dirn
+		elevator.dirn =requests_chooseDirection(elevator)
+		elevator.SetDoorOpenLamp(false)
+		elevator.dirn = elevator.dirn
 		if(elevator.dirn == MD_Stop){
-			elevState.behavoior = EBidle 
+			elevator.behavoior = EBidle 
 		} else{
-			elevState.behaviour= EBmoving
+			elevator.behaviour= EBmoving
 		}
 	}
 	//print state?
