@@ -1,4 +1,4 @@
-package main
+package Network
 
 import (
 	"flag"
@@ -6,9 +6,9 @@ import (
 	"os"
 	"time"
 
-	"./network/bcast"
-	"./network/localip"
-	"./network/peers"
+	"./bcast"
+	"./localip"
+	"./peers"
 )
 
 // We define some custom struct to send over the network.
