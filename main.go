@@ -1,27 +1,38 @@
 package main
+
 import(
-	"time"
 	"fmt"
 	. "./elevio"
 	. "./config"
 )
-func timerDoor() {
-
-	timer := time.NewTimer(3*time.Second)
-	<-timer.C
-}
-
-
+var elevator elevState
 
 func main() {
-	timerDoor()
-	fmt.Println("time out")
+	//timerDoor()
+	//fmt.Println("time out")
+	
+
+	numFloors := 4
+	Init("localhost:15657", numFloors)
+	var d MotorDirection = MD_Up
+	//elevio.SetMotorDirection(d)
+	drv_buttons := make(chan ButtonEvent)
+	drv_floors := make(chan int)
+	drv_obstr := make(chan bool)
+	drv_stop := make(chan bool)
+	go PollButtons(drv_buttons)
+	go PollFloorSensor(drv_floors)
+	go PollObstructionSwitch(drv_obstr)
+	go PollStopButton(drv_stop)
+	//drive down if between floors
+	//onInitBetweenFloors()
 
 	for {
 		select {
 		case a := <-drv_buttons:
 			fmt.Printf("%+v\n", a)
 			SetButtonLamp(a.Button, a.Floor, true)
+			setLights(elevState)
 
 		case a := <-drv_floors:
 			fmt.Printf("%+v\n", a)

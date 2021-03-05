@@ -1,6 +1,8 @@
 package config
 
+
 const (
+	numElevators = 3
 	_numFloors int = 4
 	_numButtons int = 3
 )
