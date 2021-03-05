@@ -2,13 +2,9 @@ package main
 
 import (
 	. "fmt"
-<<<<<<< HEAD
-	. "./elevio" //how to import this correctly?
 	. "time"
-=======
 	. "./elevio"
 	. "./config"
->>>>>>> added elevator functions
 )
 
 var elevator elevState //elevator state variable

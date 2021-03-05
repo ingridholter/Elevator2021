@@ -3,7 +3,6 @@ import(
 	"time"
 	"fmt"
 	. "./elevio"
-	"fmt"
 	. "./config"
 )
 func timerDoor() {
