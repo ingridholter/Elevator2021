@@ -8,7 +8,7 @@ import (
 
 	"./bcast"
 	"./localip"
-	"./peers"
+	
 )
 
 // We define some custom struct to send over the network.
