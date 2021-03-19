@@ -6,9 +6,10 @@ const (
 	NumElevators = 3
 	_numFloors int = 4
 	_numButtons int = 3
-	AllRequests [_numFloors][_numButtons*NumElevators]bool
-	ElevStateArray [NumElevators]elevState
 )
+
+var AllRequests [_numFloors][_numButtons*NumElevators]bool
+var ElevStateArray [NumElevators]ElevState
 
 type MotorDirection int
 
@@ -40,7 +41,7 @@ const (
 	EBidle = 3
 )
 
-type elevState struct {
+type ElevState struct {
 	floor int
 	dirn MotorDirection
 	behaviour elevBehaviour

@@ -1,7 +1,7 @@
 package costFunc
 
 import (
-	. "./config"
+	. "../config"
 )
 
 //Får inn alle states fra elevator observer
@@ -9,12 +9,12 @@ import (
 //skal gi ut ny R=4x(heis*3)
 
 //returnerer 100,101,102 basert på heis som skal ta ordren
-func bestElevator(eOld elevStateArray, b Buttontype, f int) int {
+func bestElevator(eOld [NumElevators]ElevState, b Buttontype, f int) int {
 	var CostMap map[int]int
-	for elevNum := 0; elevNum < NUMELEVATORS; elevNum++ {
+	for elevNum := 0; elevNum < NumElevators; elevNum++ {
 		CostMap[elevNum] = timeToServeRequest(eOld[elevNum], b, f)
 	}
-	temp := CostMap[0]
+	temp := CostMap[0] //se på mer
 	for key, value := range CostMap {
 
 		if value < temp {
@@ -69,4 +69,4 @@ func RequestMatrix(eOld elevStateArray, b Buttontype, f int) AllRequests {
 	elevatorIndex := id - 100
 	AllRequests[f][b+3*elevatorIndex] = true //rad, kolonne
 	return AllRequests
-}h
+}

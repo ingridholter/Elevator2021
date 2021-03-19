@@ -3,15 +3,27 @@ package main
 import(
 	"fmt"
 	//. "./elevio"
-	//. "./config"
-	"./Network/bcast"
+	. "./config"
+	//"./Network/bcast"
 	//"./Network/localip"
-	"time"
+	//"time"
 	"net"
 	"strings"
 	"os"
+	. "./costFunc"
 )
 //var elevator elevState
+/*func Answerfunc() {
+	answerMsg:= AnswerMsg{
+		Answer: true,
+		Message:"Answer from " + id,
+		R:[2][3]bool{
+				{true,false,false},
+				{false,true,false},
+		},
+		Iter: 0}
+}
+*/
 
 type HelloMsg struct {
 	Answer bool
@@ -40,18 +52,53 @@ func LocalIP() (string, error) {
 	return localIP, nil
 }
 
-/*func Answerfunc() {
-	answerMsg:= AnswerMsg{
-		Answer: true,
-		Message:"Answer from " + id,
-		R:[2][3]bool{
-				{true,false,false},
-				{false,true,false},
+
+
+var e1= elevState{
+	floor:1,
+	dirn: MD_Up,
+	behaviour:EBmoving,
+	requests: [4][3]bool{
+		{true,false,false},
+		{false,true,false},
+		{true,false,false},
+		{false,false,false},
+	},
+	}
+
+var e2= elevState{
+	floor:2,
+	dirn: MD_Stop,
+	behaviour:EBdoorOpen,
+	requests: [4][3]bool{
+			{true,false,false},
+			{false,false,false},
+			{true,false,false},
+			{false,false,false},
 		},
-		Iter: 0}
-}
-*/
+	}
+
+var e3= elevState{
+	floor:3,
+	dirn: MD_Up,
+	behaviour:EBmoving,
+	requests: [4][3]bool{
+				{false,false,false},
+				{false,false,false},
+				{false,false,false},
+				{false,false,false},
+			},
+			}
+
+
+var eOld [3]elevState
+
+
 func main() {
+	eOld[0]= e1
+eOld[1]=e2
+eOld[2]=e3
+
 	//timerDoor()
 	fmt.Println("hello")
 	//var id ="101"
@@ -64,6 +111,9 @@ func main() {
 		}
 		id = fmt.Sprintf("peer-%s-%d", localIP, os.Getpid())
 	}
+
+	R:=RequestMatrix(eOld,BT_HallDown ,3)
+	fmt.Printf("Request matrix: %#v\n", R)
 	
 /*
 	numFloors := 4
@@ -81,6 +131,7 @@ func main() {
 	//drive down if between floors
 	//onInitBetweenFloors()
 */
+/*
 	// We make channels for sending and receiving our custom data types
 	helloTx := make(chan HelloMsg)
 	helloRx := make(chan HelloMsg)
@@ -129,6 +180,7 @@ func main() {
 				}
 			}
 		}
+		*/
 
 /*
 case a := <-helloTx:
