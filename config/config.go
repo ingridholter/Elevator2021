@@ -2,9 +2,10 @@ package config
 
 
 const (
-	numElevators = 3
+	NumElevators = 3
 	_numFloors int = 4
 	_numButtons int = 3
+	AllRequests [_numFloors][_numButtons*NumElevators]bool
 )
 
 type MotorDirection int

@@ -19,6 +19,13 @@ type HelloMsg struct {
 	R [2][3]bool
 	Iter    int
 }
+
+type AnswerMsg struct {
+	Answer bool
+	Message string
+	R [2][3]bool
+	Iter    int
+}
 var localIP string
 
 func LocalIP() (string, error) {
@@ -33,7 +40,17 @@ func LocalIP() (string, error) {
 	return localIP, nil
 }
 
-
+/*func Answerfunc() {
+	answerMsg:= AnswerMsg{
+		Answer: true,
+		Message:"Answer from " + id,
+		R:[2][3]bool{
+				{true,false,false},
+				{false,true,false},
+		},
+		Iter: 0}
+}
+*/
 func main() {
 	//timerDoor()
 	fmt.Println("hello")
@@ -73,8 +90,7 @@ func main() {
 	go bcast.Transmitter(16569, helloTx)
 	go bcast.Receiver(16569, helloRx) //10.100.23.209
 
-	
-
+	//go Answerfunc()
 
 	// The example message. We just send one of these every second.
 	go func() {
@@ -86,20 +102,31 @@ func main() {
 					{false,true,false},
 				},
 				Iter: 0}
-		
 		for {
 			helloMsg.Iter++
 			helloTx <- helloMsg
-			time.Sleep(1 * time.Second)
+			time.Sleep(3 * time.Second)
 		}
 	}()
-
+	
 		for {
 			select{
 			
 			case b := <-helloRx:
 				fmt.Printf("Received: %#v\n", b)
-				
+				//svare at vi har motatt mld 
+				if !b.Answer{
+				answerMsg:= HelloMsg{
+					Answer: true,
+					Message:"Answer from " + id,
+					R:[2][3]bool{
+							{true,false,false},
+							{false,true,false},
+					},
+					Iter: b.Iter+1}
+				helloTx <- answerMsg
+				time.Sleep(1 * time.Millisecond)
+				}
 			}
 		}
 

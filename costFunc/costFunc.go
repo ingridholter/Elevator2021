@@ -1,12 +1,22 @@
 package costFunc
 
-func bestElevator() int {
-	var costMap map[int]int //
-	for elevNum:=0; i<NUMELEVATORS; elevNum++{
-		Costmap[elevNum] = timeToServeRequest(eOld elevState, b Buttontype, f int)
+import(
+	. "./config"
+)
+
+//Får inn alle states fra elevator observer
+//får inn knappetrykk
+//skal gi ut ny R=4x(heis*3)
+
+
+//returnerer 100,101,102 basert på heis som skal ta ordren
+func bestElevator(eOld elevStateArray, b Buttontype, f int) int {
+	var CostMap map[int]int
+	for elevNum:=0; elevNum<NUMELEVATORS; elevNum++{
+		CostMap[elevNum] = timeToServeRequest(eOld[elevNum],b,f)
 	} 
-	temp := costcostMap[0]
-	for key, value := range costMap {
+	temp := CostMap[0]
+	for key, value := range CostMap {
 		
 		if (value < temp){
 			temp = value
@@ -35,8 +45,6 @@ func timeToServeRequest(eOld elevState, b Buttontype, f int) int{
 		e.floor += e.dirn
 	case EBdoorOpen:
 		duration -= DOOROPENTIME/2
-
-
 	}
 
 
@@ -57,6 +65,13 @@ func timeToServeRequest(eOld elevState, b Buttontype, f int) int{
 		e.floor += e.direction
 		duration = TRAVELTIME
 	}
+}
+
+func RequestMatrix(eOld elevStateArray, b Buttontype, f int) AllRequests{
+	//gives 100,101,102
+	id = bestElevator(eOld,b, f)
+
+	AllRequests
 }
 
 
