@@ -2,10 +2,12 @@ package config
 
 
 const (
+	PeerId = 100 //change for different computers? possible?
 	NumElevators = 3
 	_numFloors int = 4
 	_numButtons int = 3
 	AllRequests [_numFloors][_numButtons*NumElevators]bool
+	ElevStateArray [NumElevators]elevState
 )
 
 type MotorDirection int
