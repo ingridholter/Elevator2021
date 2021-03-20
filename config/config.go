@@ -42,7 +42,7 @@ const (
 
 type ElevState struct {
 	Floor     int
-	Dirn      MotorDirection
+	Dir       MotorDirection
 	Behaviour ElevBehaviour
 	Requests  [NumFloors][NumButtons]bool
 }
