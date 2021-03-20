@@ -1,7 +1,9 @@
 package costFunc
 
 import (
-	. "../config"
+	//. "../config"
+	//c "github.com/ingridholter/Elevator2021/config"
+	. "main/config"
 )
 
 //Får inn alle states fra elevator observer

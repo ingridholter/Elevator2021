@@ -1,14 +1,13 @@
 package config
 
-
 const (
-	PeerId = 100 //change for different computers? possible?
-	NumElevators = 3
-	_numFloors int = 4
-	_numButtons int = 3
+	PeerId           = 100 //change for different computers? possible?
+	NumElevators     = 3
+	NumFloors    int = 4
+	NumButtons   int = 3
 )
 
-var AllRequests [_numFloors][_numButtons*NumElevators]bool
+var AllRequests [NumFloors][NumButtons * NumElevators]bool
 var ElevStateArray [NumElevators]ElevState
 
 type MotorDirection int
@@ -32,18 +31,18 @@ type ButtonEvent struct {
 	Button ButtonType
 }
 
-type elevBehaviour int
+type ElevBehaviour int
 
 const (
-	EBmoving elevBehaviour = 0
-	EBstop = 1
-	EBdoorOpen = 2
-	EBidle = 3
+	EBmoving   ElevBehaviour = 0
+	EBstop                   = 1
+	EBdoorOpen               = 2
+	EBidle                   = 3
 )
 
 type ElevState struct {
-	floor int
-	dirn MotorDirection
-	behaviour elevBehaviour
-	requests [_numFloors][_numButtons]bool
+	Floor     int
+	Dirn      MotorDirection
+	Behaviour ElevBehaviour
+	Requests  [NumFloors][NumButtons]bool
 }

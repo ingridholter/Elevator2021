@@ -1,16 +1,16 @@
 package elevio
 
 import (
-	"time" 
-	"sync"
+	"fmt"
 	"net"
- 	"fmt"
-	. "../config"
+	"sync"
+	"time"
+
+	. "main/config"
 )
 
 var _numFloors int = 4
 var _numButtons int = 3
-
 
 const _pollRate = 20 * time.Millisecond
 
@@ -18,8 +18,6 @@ var _initialized bool = false
 
 var _mtx sync.Mutex
 var _conn net.Conn
-
-
 
 func Init(addr string, numFloors int) {
 	if _initialized {

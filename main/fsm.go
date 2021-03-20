@@ -2,12 +2,11 @@ package main
 
 import (
 	"time"
-	. "fmt"
-	. "./elevio"
-	. "./config"
+	. "main/elevio"
+	. "main/config"
 )
 
-var elevator elevState //elevator state variable
+var elevator ElevState //elevator state variable
 
 func timerDoor() { //funker som en sleep i 3 sekunder
 
@@ -17,38 +16,38 @@ func timerDoor() { //funker som en sleep i 3 sekunder
 
 func onInitBetweenFloors(){
 	SetMotorDirection(MD_Down)
-	elevator.dirn = MD_Down
-	elevator.behaviour = EBmoving
+	elevator.Dirn = MD_Down
+	elevator.Behaviour = EBmoving
 }
 
-func setLights(elev elevState){
-	for floor := 0; floor <_numFloors; floor++{
-		for btn := 0; btn < _numButtons; btn++{
-			SetButtonLamp(btn, floor,elev.requests[floor][btn]) //requests == 0/1 is this false/true?
+func setLights(elev ElevState){
+	for floor := 0; floor < NumFloors; floor++{
+		for btn := 0; btn < NumButtons; btn++{
+			SetButtonLamp(btn, floor,elev.Requests[floor][btn]) //requests == 0/1 is this false/true?
 		}
 	}
 }
 
 func onRequestButtonPress(btnFloor int,btnType ButtonType){
-	switch elevator.behaviour{
+	switch elevator.Behaviour{
 	case EBdoorOpen:
-		if(elevator.floor==btnFloor){
+		if(elevator.Floor==btnFloor){
 			//start timer for door
 		}else{
-			elevator.requests[btnFloor][btnType] =1
+			elevator.Requests[btnFloor][btnType] =true
 		}
 	case EBmoving:
-		elevator.requests[btnFloor][btnType] =1
+		elevator.Requests[btnFloor][btnType] =true
 	case EBidle:
-		if(elevator.floor ==btnFloor){
+		if(elevator.Floor ==btnFloor){
 			SetDoorOpenLamp(true)
 			//timer start
-			elevator.behaviour = EBdoorOpen
+			elevator.Behaviour = EBdoorOpen
 		}else{
-			elevator.requests[btnFloor][btnType] =1
-			elevator.dirn = requests_chooseDirection(elevator)
-			SetMotorDirection(elevator.dirn)
-			elevator.behaviour = EBmoving
+			elevator.Requests[btnFloor][btnType] =true
+			elevator.Dirn = Requests_chooseDirection(elevator)
+			SetMotorDirection(elevator.Dirn)
+			elevator.Behaviour = EBmoving
 		}
 	}
 	setLights(elevator)
