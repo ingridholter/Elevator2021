@@ -1,9 +1,8 @@
 package costFunc
 
 import (
-	//. "../config"
-	//c "github.com/ingridholter/Elevator2021/config"
 	. "main/config"
+	. "main/elevatorDriver"
 )
 
 //Får inn alle states fra elevator observer
@@ -11,64 +10,100 @@ import (
 //skal gi ut ny R=4x(heis*3)
 
 //returnerer 100,101,102 basert på heis som skal ta ordren
-func bestElevator(eOld [NumElevators]ElevState, b Buttontype, f int) int {
-	var CostMap map[int]int
+func bestElevator(eOld [NumElevators]ElevState) int {
+	CostMap := make(map[int]int)
 	for elevNum := 0; elevNum < NumElevators; elevNum++ {
-		CostMap[elevNum] = timeToServeRequest(eOld[elevNum], b, f)
+		CostMap[elevNum] = timeToIdle(eOld[elevNum])
 	}
-	temp := CostMap[0] //se på mer
-	for key, value := range CostMap {
+	minTime := CostMap[0] //se på mer
+	for _, value := range CostMap {
 
-		if value < temp {
-			temp = value
+		if value < minTime {
+			minTime = value
 		}
 
 	}
-	return temp.key + 100
+	for key, value := range CostMap {
+
+		if value == minTime {
+			return key + 100
+		}
+
+	}
+	//return 0 if could not find best elevator
+	return 0
 }
 
-func timeToServeRequest(eOld elevState, b Buttontype, f int) int {
-	var e Elevator = eOld
-	e.request[f][b] = 1
+//simualte clearing orders
+func SimualtionRequestClearAtCurrentFloor(eOld ElevState) ElevState {
+	elev := eOld
+	elev.Requests[elev.Floor][BT_Cab] = false
+	switch elev.Dir {
+	case MD_Up:
+		elev.Requests[elev.Floor][BT_HallUp] = false
+		if !RequestsAbove(elev) {
+			elev.Requests[elev.Floor][BT_HallDown] = false
+		}
+	case MD_Down:
+		elev.Requests[elev.Floor][BT_HallDown] = false
+		if !RequestsBelow(elev) {
+			elev.Requests[elev.Floor][BT_HallUp] = false
+		}
+	case MD_Stop:
+		elev.Requests[elev.Floor][BT_HallUp] = false
+		elev.Requests[elev.Floor][BT_HallDown] = false
+	default:
+		elev.Requests[elev.Floor][BT_HallUp] = false
+		elev.Requests[elev.Floor][BT_HallDown] = false
+	}
+	return elev
+}
 
-	var arrivedAtRequest = 0
+func timeToIdle(eOld ElevState) int {
+	e := eOld
+	var TRAVELTIME = 3   //hva skal travel time være?
+	var DOOROPENTIME = 3 //hva skal door open time være?
 
 	var duration int = 0
 
-	switch e.behaviour {
+	switch e.Behaviour {
 	case EBidle:
-		e.dirn = requestChooseDirection(e)
-		if e.dirn == EBstop {
+		e.Dir = RequestChooseDirection(e)
+		if e.Dir == EBstop {
 			return duration
 		}
 	case EBmoving:
 		duration += TRAVELTIME / 2
-		e.floor += e.dirn
+		e.Floor += int(e.Dir)
 	case EBdoorOpen:
 		duration -= DOOROPENTIME / 2
 	}
 
 	for {
-		if requestsShouldStop(e) {
-			e = requestClearAtCurrentFloor(e)
-			if inner_b == b && inner_f == f { //////USIKKER: Erstatter funksjonskallet ifEqual fra D-koden
-				arrivedAtRequest = 1
-			}
-			if arrivedAtRequest {
+		if RequestShouldStop(e) {
+			e = SimualtionRequestClearAtCurrentFloor(e)
+
+			duration += DOOROPENTIME
+			e.Dir = RequestChooseDirection(e)
+			if e.Dir == MD_Stop {
 				return duration
 			}
-			duration += DOOROPENTIME
-			e.dirn = requestChooseDirection
 		}
-		e.floor += e.direction
-		duration = TRAVELTIME
+		e.Floor += int(e.Dir)
+		duration += TRAVELTIME
 	}
 }
 
-func RequestMatrix(eOld elevStateArray, b Buttontype, f int) AllRequests {
+//buttonType is int now
+func RequestMatrix(eOld [NumElevators]ElevState, btnType int, f int) [NumFloors][NumButtons * NumElevators]bool {
 	//gives 100,101,102
-	id := bestElevator(eOld, b, f)
+
+	id := bestElevator(eOld)
+	//makes sure that cab orders are taken by owners
+	if btnType == 2 {
+		id = PeerId
+	}
 	elevatorIndex := id - 100
-	AllRequests[f][b+3*elevatorIndex] = true //rad, kolonne
+	AllRequests[f][btnType+3*elevatorIndex] = true //rad, kolonne
 	return AllRequests
 }

@@ -8,7 +8,6 @@ import (
 	//"./Network/localip"
 	//"time"
 	"net"
-	"os"
 	"strings"
 
 	. "main/costFunc"
@@ -55,11 +54,11 @@ func LocalIP() (string, error) {
 	return localIP, nil
 }
 
-var e1 = elevState{
-	floor:     1,
-	dirn:      MD_Up,
-	behaviour: EBmoving,
-	requests: [4][3]bool{
+var e1 = ElevState{
+	Floor:     1,
+	Dir:       MD_Up,
+	Behaviour: EBmoving,
+	Requests: [4][3]bool{
 		{true, false, false},
 		{false, true, false},
 		{true, false, false},
@@ -67,11 +66,11 @@ var e1 = elevState{
 	},
 }
 
-var e2 = elevState{
-	floor:     2,
-	dirn:      MD_Stop,
-	behaviour: EBdoorOpen,
-	requests: [4][3]bool{
+var e2 = ElevState{
+	Floor:     2,
+	Dir:       MD_Stop,
+	Behaviour: EBdoorOpen,
+	Requests: [4][3]bool{
 		{true, false, false},
 		{false, false, false},
 		{true, false, false},
@@ -79,11 +78,11 @@ var e2 = elevState{
 	},
 }
 
-var e3 = elevState{
-	floor:     3,
-	dirn:      MD_Up,
-	behaviour: EBmoving,
-	requests: [4][3]bool{
+var e3 = ElevState{
+	Floor:     3,
+	Dir:       MD_Stop,
+	Behaviour: EBidle,
+	Requests: [4][3]bool{
 		{false, false, false},
 		{false, false, false},
 		{false, false, false},
@@ -91,7 +90,7 @@ var e3 = elevState{
 	},
 }
 
-var eOld [3]elevState
+var eOld [3]ElevState
 
 func main() {
 	eOld[0] = e1
@@ -100,7 +99,7 @@ func main() {
 
 	//timerDoor()
 	fmt.Println("hello")
-	//var id ="101"
+	/*/var id ="101"
 	var id string
 	if id == "" {
 		localIP, err := LocalIP()
@@ -110,10 +109,15 @@ func main() {
 		}
 		id = fmt.Sprintf("peer-%s-%d", localIP, os.Getpid())
 	}
+	*/
+	fmt.Println(1)
+	R := RequestMatrix(eOld, 2, 2)
 
-	R := RequestMatrix(eOld, BT_HallDown, 3)
-	fmt.Printf("Request matrix: %#v\n", R)
-
+	for f := 0; f < 4; f++ {
+		for i := 0; i < 9; i++ {
+			fmt.Println("Request matrix", "floor: ", f, "buttontype: ", ButtonType(i), "value: ", R[f][i])
+		}
+	}
 	/*
 		numFloors := 4
 		Init("localhost:15657", numFloors)
