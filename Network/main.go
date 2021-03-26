@@ -3,12 +3,12 @@ package Network
 import (
 	"flag"
 	"fmt"
+	"main/Network/peers"
 	"os"
 	"time"
 
 	"./bcast"
 	"./localip"
-	
 )
 
 // We define some custom struct to send over the network.
@@ -74,6 +74,8 @@ func main() {
 	for {
 		select {
 		case p := <-peerUpdateCh:
+			//function(p.Peers); //denne oppdaterer elevatorStates lista
+
 			fmt.Printf("Peer update:\n")
 			fmt.Printf("  Peers:    %q\n", p.Peers)
 			fmt.Printf("  New:      %q\n", p.New)

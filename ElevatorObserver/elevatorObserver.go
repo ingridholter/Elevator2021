@@ -22,11 +22,11 @@ type PowerLoss struct {
 }
 
 //useful functions
-
+/*
 func UpdateElevStateArray(msg ElevStateMsg) {
 	ElevStateArray[msg.PeerId-100] = msg.elevator //id== 100-101-102
 }
-
+*/
 func UpdateAllRequestsMatrix(msg ElevStateMsg) {
 	AllRequests = msg.AllRequests
 }
@@ -42,6 +42,17 @@ func AllRequestToRequests(msg ElevStateMsg) {
 //sette lys og ta ordre, det kommer fra motatt R matrise
 func AcceptOrder(elevator ElevState) {
 	//SetLights(elevator);
+}
+
+var ElevStateArray [NumElevators]ElevState
+
+//oppdatere elevStateArray slik at den inneholder kun peers på netverket, tar inn p.Peers
+func UpdateElevStateArray(peers []string) {
+
+	ActiveElevators = len(peers) //antall peers på nettverket.
+	for activePeer := range peers {
+
+	}
 }
 
 /*
