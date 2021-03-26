@@ -12,7 +12,7 @@ import (
 //returnerer 100,101,102 basert på heis som skal ta ordren
 func bestElevator(eOld [NumElevators]ElevState) int {
 	CostMap := make(map[int]int)
-	for elevNum := 0; elevNum < NumElevators; elevNum++ {
+	for elevNum := 0; elevNum < ActiveElevators; elevNum++ {
 		CostMap[elevNum] = timeToIdle(eOld[elevNum])
 	}
 	minTime := CostMap[0] //se på mer

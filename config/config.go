@@ -7,6 +7,7 @@ const (
 	NumButtons   int = 3
 )
 
+var ActiveElevators = 3
 var AllRequests [NumFloors][NumButtons * NumElevators]bool
 var ElevStateArray [NumElevators]ElevState
 
