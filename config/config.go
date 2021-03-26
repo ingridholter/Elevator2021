@@ -1,13 +1,13 @@
 package config
 
 const (
-	PeerId           = 100 //change for different computers? possible?
+	PeerId           = 100 //change for different computers? not here changed in main.
 	NumElevators     = 3
 	NumFloors    int = 4
 	NumButtons   int = 3
 )
 
-var ActiveElevators = 3
+//var ActiveElevators = 3 //len(peers)
 var AllRequests [NumFloors][NumButtons * NumElevators]bool
 var ElevStateArray [NumElevators]ElevState
 
@@ -46,4 +46,16 @@ type ElevState struct {
 	Dir       MotorDirection
 	Behaviour ElevBehaviour
 	Requests  [NumFloors][NumButtons]bool
+}
+
+type NewOrderMsg struct {
+	SenderId    string
+	RecieverId	string
+	Button		ButtonEvent
+}
+
+type ElevStateMsg struct {
+	SenderId    string
+	Message     string
+	Elevator    ElevState
 }

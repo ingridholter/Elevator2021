@@ -1,19 +1,16 @@
-package elevatorObserver
+package ElevatorObserver
 
 //module for keeping track over states in other elevator, handling message error and setting lights to "take order"
 
 import (
 	. "main/config"
+	. "fmt"
+	"strconv"
+	. "main/elevatorDriver"
 )
 
-type ElevStateMsg struct {
-	id          int
-	PeerId      int
-	Message     string
-	AllRequests [NumFloors][NumElevators * 3]bool //3 is number of button types
-	elevator    ElevState
-	Iter        int
-}
+
+
 
 type PowerLoss struct {
 	id       int
@@ -21,82 +18,75 @@ type PowerLoss struct {
 	elevator ElevState
 }
 
-//useful functions
-/*
-func UpdateElevStateArray(msg ElevStateMsg) {
-	ElevStateArray[msg.PeerId-100] = msg.elevator //id== 100-101-102
-}
-*/
-func UpdateAllRequestsMatrix(msg ElevStateMsg) {
-	AllRequests = msg.AllRequests
-}
-
-func AllRequestToRequests(msg ElevStateMsg) {
-	for f := 0; f < 4; f++ {
-		for i := 3 * PeerId; i < 3*PeerId+3; i++ {
-			msg.elevator.Requests[f][i-3*PeerId] = AllRequests[f][i]
-		}
-	}
-}
 
 //sette lys og ta ordre, det kommer fra motatt R matrise
-func AcceptOrder(elevator ElevState) {
-	//SetLights(elevator);
-}
+func AcceptNewOrder(msg NewOrderMsg,id int,elevator ElevState) {
+	senderId,_ := strconv.Atoi(msg.SenderId)
+	recieverId,_ := strconv.Atoi(msg.RecieverId)
+	if (id == senderId){
+		//sjekke om noen andre vet om denne ordren? Nei tror det går fint
+	}
+	if (id == recieverId){
 
-var ElevStateArray [NumElevators]ElevState
-
-//oppdatere elevStateArray slik at den inneholder kun peers på netverket, tar inn p.Peers
-func UpdateElevStateArray(peers []string) {
-
-	ActiveElevators = len(peers) //antall peers på nettverket.
-	for activePeer := range peers {
-
+		elevator.Requests[msg.Button.Floor][msg.Button.Button] = true //legger til ordre i min lokale matrise
+		
 	}
 }
 
-/*
-MANGLER:
-- feilhåndering
+//tror ikke det blir problem når jeg selv skal ta ordre og sette lys og så får feil
+func SyncAllLights(allElevators [NumElevators]ElevState){
 
-*/
-
-//newElevState:= make(chan ElevStateMsg)
-//elevPowerLoss:= make(chan PowerLoss)
-
-//newElevState messages
-//go bcast.Transmitter(16569, newElevState)
-//go bcast.Receiver(16569, elevPowerLoss) //10.100.23.209
-
-/*
-go func() {
-	helloMsg := HelloMsg{
-			Answer: false,
-			Message:"Hello from " + id,
-			R:[2][3]bool{
-				{true,false,false},
-				{false,true,false},
-			},
-			Iter: 0}
-	for {
-		helloMsg.Iter++
-		helloTx <- helloMsg
-		time.Sleep(3 * time.Second)
+	for _,elevator:= range allElevators{
+		SetLights(elevator)
 	}
-}()
+
+}
+
+
+func UpdateElevStateArray(msg ElevStateMsg) {
+	Println(msg)
+
+	id,_ := strconv.Atoi(msg.SenderId)
+	ElevStateArray[id] =  msg.Elevator
+}
 
 
 
-for {
-	select{
-
-	case b := <-helloRx:
-		fmt.Printf("Received: %#v\n", b)
-
+func elevatorActive(id int, peers []string) bool{
+	for _, b:= range peers{
+		a,_ := strconv.Atoi(b)
+		if a == id{
+			return true
 		}
 	}
+	return false
 }
 
+//oppdatere elevStateArray slik at de peers som ikke er på nettverket har floor=-1 og ingen requests, tar inn p.Peers
+func ActiveElevatorStates(peers []string){
 
+	var ActiveElevatorStates [NumElevators]ElevState
 
-*/
+	//error state
+	var err = ElevState{
+		Floor:     -1,
+		Dir:       MD_Stop,
+		Behaviour: EBmoving,
+		Requests: [4][3]bool{
+			{false, false, false},
+			{false, false, false},
+			{false, false, false},
+			{false, false, false},
+		},
+	}
+	//0,1,2
+	for i:=0; i<NumElevators; i++{
+		if elevatorActive(i+100,peers){
+			ActiveElevatorStates[i] = ElevStateArray[i]
+		} else {
+			ActiveElevatorStates[i] = err
+		}
+	}
+	ElevStateArray = ActiveElevatorStates
+}
+

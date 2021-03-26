@@ -18,6 +18,7 @@ type HelloMsg struct {
 	Message string
 	Iter    int
 }
+ 
 
 func main() {
 	// Our id can be anything. Here we pass it on the command line, using
@@ -50,6 +51,7 @@ func main() {
 	peerTxEnable := make(chan bool)
 	go peers.Transmitter(15647, id, peerTxEnable)
 	go peers.Receiver(15647, peerUpdateCh)
+	
 
 	// We make channels for sending and receiving our custom data types
 	helloTx := make(chan HelloMsg)

@@ -6,6 +6,27 @@ import(
 	. "./config"
 )
 
+//stor matrise til liten matrise
+func AllRequestToRequests(msg ElevStateMsg, id int) {
+	for f := 0; f < NumFloors; f++ {
+		for i := NumButtons * id; i < NumButtons*id+NumButtons; i++ {
+			msg.elevator.Requests[f][i-NumButtons*id] = AllRequests[f][i]
+		}
+	}
+}
+
+
+func RequestsToAllRequests(msg ElevStateMsg){
+	id,_ := strconv.Atoi(msg.senderId)
+	for f := 0; f < NumFloors; f++ {
+		for b := NumButtons * id; b < NumButtons*id+NumButtons; b++{
+			AllRequests[f][b] == msg.Requests[f][b-NumButtons*id]
+		}
+	}
+
+}
+
+
 func main() {
 	//timerDoor()
 	//fmt.Println("time out")

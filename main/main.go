@@ -4,13 +4,15 @@ import (
 	"fmt"
 	//. "./elevio"
 	. "main/config"
-	//"./Network/bcast"
-	//"./Network/localip"
-	//"time"
+	"main/Network/bcast"
+	"main/Network/peers"
+	"time"
 	"net"
 	"strings"
-
-	. "main/costFunc"
+	"flag"
+	"os"
+	. "main/ElevatorObserver"
+	"main/costFunc"
 )
 
 //var elevator elevState
@@ -92,11 +94,15 @@ var e3 = ElevState{
 
 var eOld [3]ElevState
 
+
+
 func main() {
 	eOld[0] = e1
 	eOld[1] = e2
 	eOld[2] = e3
 
+	ElevStateArray = eOld
+	fmt.Println(eOld)
 	//timerDoor()
 	fmt.Println("hello")
 	/*/var id ="101"
@@ -111,6 +117,9 @@ func main() {
 	}
 	*/
 	fmt.Println(1)
+
+	fmt.Println(eOld)
+	/*
 	R := RequestMatrix(eOld, 2, 2)
 
 	for f := 0; f < 4; f++ {
@@ -118,6 +127,71 @@ func main() {
 			fmt.Println("Request matrix", "floor: ", f, "buttontype: ", ButtonType(i), "value: ", R[f][i])
 		}
 	}
+*/
+
+	var id string
+	flag.StringVar(&id, "id", "", "id of this peer") //(p *string, name string, value string, usage string)
+	
+	flag.Parse()
+	
+	if id == "" {
+		localIP, err := LocalIP()
+		if err != nil {
+			fmt.Println(err)
+			localIP = "DISCONNECTED"
+		}
+		id = fmt.Sprintf("peer-%s-%d", localIP, os.Getpid())
+	}
+	peerUpdateCh := make(chan peers.PeerUpdate)
+	// We can disable/enable the transmitter after it has been started.
+	// This could be used to signal that we are somehow "unavailable".
+	peerTxEnable := make(chan bool)
+	go peers.Transmitter(20008, id, peerTxEnable)
+	go peers.Receiver(20008, peerUpdateCh)
+
+	// We make channels for sending and receiving our custom data types
+	ElevStateMsgTx := make(chan ElevStateMsg)
+	ElevStateMsgRx := make(chan ElevStateMsg)
+	// ... and start the transmitter/receiver pair on some port
+	// These functions can take any number of channels! It is also possible to
+	//  start multiple transmitters/receivers on the same port.
+	go bcast.Transmitter(20009,ElevStateMsgTx)
+	go bcast.Receiver(20009,ElevStateMsgRx) //10.100.23.209
+
+	go func(){
+		elevstate := ElevStateMsg{
+			SenderId: id,
+			Message: "hei",
+			Elevator: e1,
+		}
+			
+	for {
+		//sender mld hver sekund
+		ElevStateMsgTx <- helloMsg
+		time.Sleep(2 * time.Second)
+	}
+	}
+	
+	for {
+		select {
+		case p := <-peerUpdateCh:
+			//function(p.Peers); //denne oppdaterer elevatorStates lista
+
+			fmt.Printf("Peer update:\n")
+			fmt.Printf("  Peers:    %q\n", p.Peers)
+			fmt.Printf("  New:      %q\n", p.New)
+			fmt.Printf("  Lost:     %q\n", p.Lost)
+
+			//oppdatere elevstatearray
+			ActiveElevatorStates(p.Peers)
+			fmt.Println(ElevStateArray)
+		case r:= <- ElevStateMsgRx:
+			fmt.Println("Received: ", r)
+			UpdateElevStateArray(r)
+			fmt.Println(ElevStateArray)
+		}
+	}
+
 	/*
 		numFloors := 4
 		Init("localhost:15657", numFloors)
@@ -133,7 +207,8 @@ func main() {
 		go PollStopButton(drv_stop)
 		//drive down if between floors
 		//onInitBetweenFloors()
-	*/
+		*/
+	
 	/*
 		// We make channels for sending and receiving our custom data types
 		helloTx := make(chan HelloMsg)
@@ -184,8 +259,7 @@ func main() {
 				}
 			}
 	*/
-
-	/*
+/*
 	   case a := <-helloTx:
 	   				fmt.Printf("Transmitted: %#v\n", a)
 	   	for {
