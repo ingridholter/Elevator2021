@@ -3,6 +3,7 @@ package costFunc
 import (
 	. "main/config"
 	. "main/elevatorDriver"
+	"strconv"
 )
 
 //Får inn alle states fra elevator observer
@@ -12,10 +13,10 @@ import (
 //returnerer 100,101,102 basert på heis som skal ta ordren
 func bestElevator(eOld [NumElevators]ElevState) int {
 	CostMap := make(map[int]int)
-	for elevNum := 0; elevNum <NumElevators; elevNum++ {
-		if eold[elevNum].floor == -1{
+	for elevNum := 0; elevNum < NumElevators; elevNum++ {
+		if eOld[elevNum].Floor == -1 {
 			CostMap[elevNum] = 9999 //infinity
-		}else{
+		} else {
 			CostMap[elevNum] = timeToIdle(eOld[elevNum])
 		}
 	}
@@ -98,45 +99,38 @@ func timeToIdle(eOld ElevState) int {
 	}
 }
 
+//send msg to the id that should take the order
+func NewOrderDistributer(eOld [NumElevators]ElevState, btnType ButtonType, f int, id string, elevator ElevState) NewOrderMsg {
 
-
-//buttonType is int now
-func newOrderDistributer(eOld [NumElevators]ElevState, btnType int, f int,id string,elevator ElevState) NewOrderMsg{
-	
 	//min id
-	Id,_ := strconv.Atoi(id)
+	Id, _ := strconv.Atoi(id)
 
 	bestElevatorId := bestElevator(eOld)
 
 	bestElevatorId = bestElevatorId - 100
-	b:= ButtonEvent{Button: ButtonType(btnType), Floor: f} 
-
-
+	b := ButtonEvent{Button: btnType, Floor: f}
 
 	//makes sure that cab orders are taken by owners
-	if  bestElevatorId == Id || btnType == 2 {
-	
+	if bestElevatorId == Id || btnType == 2 {
+
 		//oppdatere egen request matrise og elevstatearray
 		elevator.Requests[f][btnType] = true
 		ElevStateArray[Id].Requests[f][btnType] = true
 
 		//send mld til meg seg
 		msgMe := NewOrderMsg{
-			SenderId: Id,
-			RecieverId: Id,
-			Button: b,
+			SenderId:   id,
+			RecieverId: id,
+			Button:     b,
 		}
 		return msgMe
 	}
 
-
-
 	msg := NewOrderMsg{
-		SenderId: Id,
-		RecieverId: bestElevatorId,
-		Button: b,
+		SenderId:   id,
+		RecieverId: strconv.Itoa(bestElevatorId),
+		Button:     b,
 	}
 
 	return msg
 }
-

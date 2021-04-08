@@ -11,6 +11,7 @@ import (
 
 var _numFloors int = 4
 var _numButtons int = 3
+var Between bool = false
 
 const _pollRate = 20 * time.Millisecond
 
@@ -32,6 +33,9 @@ func Init(addr string, numFloors int) {
 		panic(err.Error())
 	}
 	_initialized = true
+	if getFloor() == -1 {
+		Between = true
+	}
 }
 
 func SetMotorDirection(dir MotorDirection) {

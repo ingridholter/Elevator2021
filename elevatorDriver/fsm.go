@@ -1,12 +1,11 @@
 package elevatorDriver
 
 import (
+	"fmt"
 	. "main/config"
 	. "main/elevio"
 	"time"
 )
-
-var elevator ElevState //elevator state variable
 
 func TimerDoor() { //funker som en sleep i 3 sekunder
 
@@ -16,58 +15,62 @@ func TimerDoor() { //funker som en sleep i 3 sekunder
 
 func OnInitBetweenFloors() {
 	SetMotorDirection(MD_Down)
-	elevator.Dir = MD_Down
-	elevator.Behaviour = EBmoving
+	Elevator.Dir = MD_Down
+	Elevator.Behaviour = EBmoving
 }
 
 func SetLights(elev ElevState) {
 	for floor := 0; floor < NumFloors; floor++ {
 		for btn := 0; btn < NumButtons; btn++ {
+			if elev.Requests[floor][btn] {
+				fmt.Println(true)
+			}
 			SetButtonLamp(ButtonType(btn), floor, elev.Requests[floor][btn]) //requests == 0/1 is this false/true?
 		}
 	}
 }
 
 func OnRequestButtonPress(btnFloor int, btnType ButtonType) {
-	switch elevator.Behaviour {
+	switch Elevator.Behaviour {
 	case EBdoorOpen:
-		if elevator.Floor == btnFloor {
+		if Elevator.Floor == btnFloor {
 			TimerDoor() //start timer for door
 		} else {
-			elevator.Requests[btnFloor][btnType] = true
+			Elevator.Requests[btnFloor][btnType] = true
 		}
 	case EBmoving:
-		elevator.Requests[btnFloor][btnType] = true
+		Elevator.Requests[btnFloor][btnType] = true
 	case EBidle:
-		if elevator.Floor == btnFloor {
+		if Elevator.Floor == btnFloor {
 			SetDoorOpenLamp(true)
 			TimerDoor() //timer start
-			elevator.Behaviour = EBdoorOpen
+			Elevator.Behaviour = EBdoorOpen
 		} else {
-			elevator.Requests[btnFloor][btnType] = true
-			elevator.Dir = RequestChooseDirection(elevator)
-			SetMotorDirection(elevator.Dir)
-			elevator.Behaviour = EBmoving
+			Elevator.Requests[btnFloor][btnType] = true
+			Elevator.Dir = RequestChooseDirection(Elevator)
+			SetMotorDirection(Elevator.Dir)
+			Elevator.Behaviour = EBmoving
 		}
 	}
-	SetLights(elevator)
+	//SetLights(Elevator)
+	//fmt.Println("Elevator ", Elevator)
 	//can print the state of elevator for debugg process
 }
 
 func OnFloorArrival(newFloor int) {
 	//can print the new floor and the state of elevator
 
-	elevator.Floor = newFloor
-	SetFloorIndicator(elevator.Floor)
-	switch elevator.Behaviour {
+	Elevator.Floor = newFloor
+	SetFloorIndicator(Elevator.Floor)
+	switch Elevator.Behaviour {
 	case EBmoving:
-		if RequestShouldStop(elevator) {
+		if RequestShouldStop(Elevator) {
 			SetMotorDirection(MD_Stop)
 			SetDoorOpenLamp(true)
-			elevator = RequestClearAtCurrentFloor(elevator)
+			Elevator = RequestClearAtCurrentFloor(Elevator)
 			TimerDoor() //start timer for door
-			SetLights(elevator)
-			elevator.Behaviour = EBdoorOpen
+			SetLights(Elevator)
+			Elevator.Behaviour = EBdoorOpen
 		}
 	}
 	//can print state
@@ -76,15 +79,15 @@ func OnFloorArrival(newFloor int) {
 func OnFloorTimeOut() {
 	//can print elevator state and function
 
-	switch elevator.Behaviour {
+	switch Elevator.Behaviour {
 	case EBdoorOpen:
-		elevator.Dir = RequestChooseDirection(elevator)
+		Elevator.Dir = RequestChooseDirection(Elevator)
 		SetDoorOpenLamp(false)
-		SetMotorDirection(elevator.Dir)
-		if elevator.Dir == MD_Stop {
-			elevator.Behaviour = EBidle
+		SetMotorDirection(Elevator.Dir)
+		if Elevator.Dir == MD_Stop {
+			Elevator.Behaviour = EBidle
 		} else {
-			elevator.Behaviour = EBmoving
+			Elevator.Behaviour = EBmoving
 		}
 	}
 	//print state?

@@ -7,6 +7,8 @@ const (
 	NumButtons   int = 3
 )
 
+var Elevator ElevState //elevator state variable
+
 //var ActiveElevators = 3 //len(peers)
 var AllRequests [NumFloors][NumButtons * NumElevators]bool
 var ElevStateArray [NumElevators]ElevState
@@ -49,13 +51,19 @@ type ElevState struct {
 }
 
 type NewOrderMsg struct {
-	SenderId    string
-	RecieverId	string
-	Button		ButtonEvent
+	SenderId   string
+	RecieverId string
+	Button     ButtonEvent
 }
 
 type ElevStateMsg struct {
-	SenderId    string
-	Message     string
-	Elevator    ElevState
+	SenderId string
+	Message  string
+	Elevator ElevState
+}
+
+type PowerLoss struct {
+	Id       int
+	Message  string
+	Elevator ElevState
 }

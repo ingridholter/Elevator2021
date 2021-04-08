@@ -86,3 +86,49 @@ func main() {
 	}
 	
 }
+
+var e1 = ElevState{
+	Floor:     1,
+	Dir:       MD_Up,
+	Behaviour: EBmoving,
+	Requests: [4][3]bool{
+		{true, false, false},
+		{false, true, false},
+		{true, false, false},
+		{false, false, false},
+	},
+}
+
+var e2 = ElevState{
+	Floor:     2,
+	Dir:       MD_Stop,
+	Behaviour: EBdoorOpen,
+	Requests: [4][3]bool{
+		{true, false, false},
+		{false, false, false},
+		{true, false, false},
+		{false, false, false},
+	},
+}
+
+var e3 = ElevState{
+	Floor:     3,
+	Dir:       MD_Stop,
+	Behaviour: EBidle,
+	Requests: [4][3]bool{
+		{false, false, false},
+		{false, false, false},
+		{false, false, false},
+		{false, false, false},
+	},
+}
+
+var eOld [3]ElevState
+
+
+eOld[0] = Elevator
+	eOld[1] = e2
+	eOld[2] = e3
+
+	ElevStateArray = eOld
+
