@@ -5,8 +5,10 @@ package ElevatorObserver
 import (
 	"fmt"
 	. "main/config"
-	. "main/costFunc"
-	. "main/elevatorDriver"
+
+	//. "main/costFunc"
+	"main/elevatorDriver"
+	. "main/elevio"
 	"strconv"
 )
 
@@ -28,10 +30,21 @@ func AcceptNewOrder(msg NewOrderMsg, id string, elevator ElevState) bool {
 }
 
 //tror ikke det blir problem når jeg selv skal ta ordre og sette lys og så får feil. OBS CAB lights!!
-func SyncAllLights(allElevators [NumElevators]ElevState) {
+func SyncAllLights(allElevators [NumElevators]ElevState, id string) {
+
+	Id, _ := strconv.Atoi(id)
+	//fmt.Println(allElevators)
+	for floor := 0; floor < NumFloors; floor++ {
+		SetButtonLamp(BT_Cab, floor, allElevators[Id].Requests[floor][2]) //this is for cab orders
+	}
 
 	for _, elevator := range allElevators {
-		SetLights(elevator)
+		if elevator.Floor != -1 {
+			elevatorDriver.SetLights(elevator)
+			fmt.Println("active elevator")
+		}
+
+		//fmt.Println("setting lights in elevatorObs")
 	}
 
 }
@@ -40,8 +53,7 @@ func UpdateElevStateArray(msg ElevStateMsg) {
 	fmt.Println("update Elev state array: ", msg)
 
 	id, _ := strconv.Atoi(msg.SenderId)
-	//our ids are 100 101 102... for some reason
-	id = id - 100
+
 	ElevStateArray[id] = msg.Elevator
 }
 
@@ -74,7 +86,7 @@ func ActiveElevatorStates(peers []string) {
 	}
 	//0,1,2
 	for i := 0; i < NumElevators; i++ {
-		if elevatorActive(i+100, peers) {
+		if elevatorActive(i, peers) {
 			ActiveElevatorStates[i] = ElevStateArray[i]
 		} else {
 			ActiveElevatorStates[i] = err
@@ -87,11 +99,10 @@ func ActiveElevatorStates(peers []string) {
 func DistibuteLostOrders(lost []string) {
 	for _, id := range lost {
 		Id, _ := strconv.Atoi(id)
-		Id = Id - 100
 		for floor := 0; floor < NumFloors; floor++ {
 			for btn := 0; btn < NumButtons; btn++ {
 				if ElevStateArray[Id].Requests[floor][btn] {
-					msg := NewOrderDistributer(ElevStateArray, ButtonType(btn), floor, id, Elevator)
+					//msg := NewOrderDistributer(ElevStateArray, ButtonType(btn), floor, id, Elevator)
 					//send <- msg //send to channel :)
 				}
 			}

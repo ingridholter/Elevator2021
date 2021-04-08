@@ -31,7 +31,7 @@ func bestElevator(eOld [NumElevators]ElevState) int {
 	for key, value := range CostMap {
 
 		if value == minTime {
-			return key + 100
+			return key
 		}
 
 	}
@@ -107,7 +107,6 @@ func NewOrderDistributer(eOld [NumElevators]ElevState, btnType ButtonType, f int
 
 	bestElevatorId := bestElevator(eOld)
 
-	bestElevatorId = bestElevatorId - 100
 	b := ButtonEvent{Button: btnType, Floor: f}
 
 	//makes sure that cab orders are taken by owners

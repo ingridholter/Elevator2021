@@ -16,8 +16,6 @@ import (
 
 func main() {
 
-	fmt.Println("hello")
-
 	var id string
 	flag.StringVar(&id, "id", "", "id of this peer") //(p *string, name string, value string, usage string)
 
@@ -34,6 +32,7 @@ func main() {
 	flag.StringVar(&simport, "simport", "", "simport for this terminal")
 	flag.Parse()
 
+	fmt.Println(id)
 	if simport == "" {
 		simport = "localhost:15657"
 	}
@@ -85,9 +84,10 @@ func main() {
 
 	//send my state every 3 seconds, (could be to slow)
 	go func() {
+
 		for {
 			ElevStateMsgTx <- elevstate
-			time.Sleep(3 * time.Second)
+			time.Sleep(1 * time.Second)
 		}
 	}()
 
@@ -108,7 +108,7 @@ func main() {
 		case r := <-ElevStateMsgRx:
 			fmt.Println("Received msg: ", r)
 			UpdateElevStateArray(r)
-			SyncAllLights(ElevStateArray)
+			SyncAllLights(ElevStateArray, id)
 
 		case b := <-drv_buttons:
 			fmt.Printf("%+v\n", b)
@@ -131,6 +131,7 @@ func main() {
 			fmt.Println("new order recieved: ", m)
 
 			if AcceptNewOrder(m, id, Elevator) { //is the new order for this elevator?
+				SyncAllLights(ElevStateArray, id)
 				OnRequestButtonPress(m.Button.Floor, m.Button.Button) //sets button request == true on wanted elevator
 			}
 
@@ -143,7 +144,9 @@ func main() {
 		case a := <-drv_floors:
 			fmt.Printf("%+v\n", a)
 
-			OnFloorArrival(a)
+			OnFloorArrival(a, id)
+			fmt.Println("goimg for on floor to on floor timeout")
+			//SyncAllLights(ElevStateArray, id)
 			OnFloorTimeOut()
 			elevstate = ElevStateMsg{
 				SenderId: id,

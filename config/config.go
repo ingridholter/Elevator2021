@@ -1,7 +1,7 @@
 package config
 
 const (
-	PeerId           = 100 //change for different computers? not here changed in main.
+	PeerId           = 0 //change for different computers? not here changed in main.
 	NumElevators     = 3
 	NumFloors    int = 4
 	NumButtons   int = 3

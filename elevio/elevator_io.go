@@ -36,6 +36,21 @@ func Init(addr string, numFloors int) {
 	if getFloor() == -1 {
 		Between = true
 	}
+	for index := range ElevStateArray {
+		ElevStateArray[index] = ElevState{
+			Floor:     -1,
+			Dir:       MD_Stop,
+			Behaviour: EBmoving,
+			Requests: [4][3]bool{
+				{false, false, false},
+				{false, false, false},
+				{false, false, false},
+				{false, false, false},
+			},
+		}
+		//fmt.Println("setting lights in elevatorObs")
+	}
+
 }
 
 func SetMotorDirection(dir MotorDirection) {
