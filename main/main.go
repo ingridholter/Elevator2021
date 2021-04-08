@@ -1,147 +1,43 @@
 package main
 
 import (
+	"flag"
 	"fmt"
-	//. "./elevio"
-	. "main/config"
+	. "main/ElevatorObserver"
 	"main/Network/bcast"
 	"main/Network/peers"
-	"time"
-	"net"
-	"strings"
-	"flag"
+	. "main/config"
+	. "main/costFunc"
+	. "main/elevatorDriver"
+	. "main/elevio"
 	"os"
-	. "main/ElevatorObserver"
-	"main/costFunc"
+	"time"
 )
 
-//var elevator elevState
-/*func Answerfunc() {
-	answerMsg:= AnswerMsg{
-		Answer: true,
-		Message:"Answer from " + id,
-		R:[2][3]bool{
-				{true,false,false},
-				{false,true,false},
-		},
-		Iter: 0}
-}
-*/
-
-type HelloMsg struct {
-	Answer  bool
-	Message string
-	R       [2][3]bool
-	Iter    int
-}
-
-type AnswerMsg struct {
-	Answer  bool
-	Message string
-	R       [2][3]bool
-	Iter    int
-}
-
-var localIP string
-
-func LocalIP() (string, error) {
-	if localIP == "" {
-		conn, err := net.DialTCP("tcp4", nil, &net.TCPAddr{IP: []byte{8, 8, 8, 8}, Port: 53})
-		if err != nil {
-			return "", err
-		}
-		defer conn.Close()
-		localIP = strings.Split(conn.LocalAddr().String(), ":")[0]
-	}
-	return localIP, nil
-}
-
-var e1 = ElevState{
-	Floor:     1,
-	Dir:       MD_Up,
-	Behaviour: EBmoving,
-	Requests: [4][3]bool{
-		{true, false, false},
-		{false, true, false},
-		{true, false, false},
-		{false, false, false},
-	},
-}
-
-var e2 = ElevState{
-	Floor:     2,
-	Dir:       MD_Stop,
-	Behaviour: EBdoorOpen,
-	Requests: [4][3]bool{
-		{true, false, false},
-		{false, false, false},
-		{true, false, false},
-		{false, false, false},
-	},
-}
-
-var e3 = ElevState{
-	Floor:     3,
-	Dir:       MD_Stop,
-	Behaviour: EBidle,
-	Requests: [4][3]bool{
-		{false, false, false},
-		{false, false, false},
-		{false, false, false},
-		{false, false, false},
-	},
-}
-
-var eOld [3]ElevState
-
-
-
 func main() {
-	eOld[0] = e1
-	eOld[1] = e2
-	eOld[2] = e3
 
-	ElevStateArray = eOld
-	fmt.Println(eOld)
-	//timerDoor()
 	fmt.Println("hello")
-	/*/var id ="101"
-	var id string
-	if id == "" {
-		localIP, err := LocalIP()
-		if err != nil {
-			fmt.Println(err)
-			localIP = "DISCONNECTED"
-		}
-		id = fmt.Sprintf("peer-%s-%d", localIP, os.Getpid())
-	}
-	*/
-	fmt.Println(1)
-
-	fmt.Println(eOld)
-	/*
-	R := RequestMatrix(eOld, 2, 2)
-
-	for f := 0; f < 4; f++ {
-		for i := 0; i < 9; i++ {
-			fmt.Println("Request matrix", "floor: ", f, "buttontype: ", ButtonType(i), "value: ", R[f][i])
-		}
-	}
-*/
 
 	var id string
 	flag.StringVar(&id, "id", "", "id of this peer") //(p *string, name string, value string, usage string)
-	
-	flag.Parse()
-	
+
 	if id == "" {
-		localIP, err := LocalIP()
+		localIP, err := peers.LocalIP()
 		if err != nil {
 			fmt.Println(err)
 			localIP = "DISCONNECTED"
 		}
 		id = fmt.Sprintf("peer-%s-%d", localIP, os.Getpid())
 	}
+
+	var simport string
+	flag.StringVar(&simport, "simport", "", "simport for this terminal")
+	flag.Parse()
+
+	if simport == "" {
+		simport = "localhost:15657"
+	}
+
 	peerUpdateCh := make(chan peers.PeerUpdate)
 	// We can disable/enable the transmitter after it has been started.
 	// This could be used to signal that we are somehow "unavailable".
@@ -152,148 +48,125 @@ func main() {
 	// We make channels for sending and receiving our custom data types
 	ElevStateMsgTx := make(chan ElevStateMsg)
 	ElevStateMsgRx := make(chan ElevStateMsg)
+	NewOrderMsgTx := make(chan NewOrderMsg)
+	NewOrderMsgRx := make(chan NewOrderMsg)
+
 	// ... and start the transmitter/receiver pair on some port
 	// These functions can take any number of channels! It is also possible to
 	//  start multiple transmitters/receivers on the same port.
-	go bcast.Transmitter(20009,ElevStateMsgTx)
-	go bcast.Receiver(20009,ElevStateMsgRx) //10.100.23.209
+	go bcast.Transmitter(20009, ElevStateMsgTx)
+	go bcast.Receiver(20009, ElevStateMsgRx) //10.100.23.209
+	go bcast.Transmitter(20007, NewOrderMsgTx)
+	go bcast.Receiver(20007, NewOrderMsgRx)
 
-	go func(){
-		elevstate := ElevStateMsg{
-			SenderId: id,
-			Message: "hei",
-			Elevator: e1,
+	numFloors := 4
+	Init(simport, numFloors)
+	var d MotorDirection = MD_Up //trenger denne?
+
+	drv_buttons := make(chan ButtonEvent)
+	drv_floors := make(chan int)
+	drv_obstr := make(chan bool)
+	drv_stop := make(chan bool)
+	go PollButtons(drv_buttons)
+	go PollFloorSensor(drv_floors)
+	go PollObstructionSwitch(drv_obstr)
+	go PollStopButton(drv_stop)
+
+	//drive down if between floors
+	if Between {
+		OnInitBetweenFloors()
+	}
+	//send current state on this format
+	elevstate := ElevStateMsg{
+		SenderId: id,
+		Message:  "State Update",
+		Elevator: Elevator,
+	}
+
+	//send my state every 3 seconds, (could be to slow)
+	go func() {
+		for {
+			ElevStateMsgTx <- elevstate
+			time.Sleep(3 * time.Second)
 		}
-			
+	}()
+
 	for {
-		//sender mld hver sekund
-		ElevStateMsgTx <- helloMsg
-		time.Sleep(2 * time.Second)
-	}
-	}
-	
-	for {
+		//SyncAllLights(ElevStateArray) //light lights based on current accepted orders, maybe need functionalities for -1 elevators
+		//fmt.Println("active e: ", ElevStateArray)
 		select {
 		case p := <-peerUpdateCh:
-			//function(p.Peers); //denne oppdaterer elevatorStates lista
 
 			fmt.Printf("Peer update:\n")
 			fmt.Printf("  Peers:    %q\n", p.Peers)
 			fmt.Printf("  New:      %q\n", p.New)
 			fmt.Printf("  Lost:     %q\n", p.Lost)
 
-			//oppdatere elevstatearray
 			ActiveElevatorStates(p.Peers)
-			fmt.Println(ElevStateArray)
-		case r:= <- ElevStateMsgRx:
-			fmt.Println("Received: ", r)
+			fmt.Println("update active e: ", ElevStateArray)
+
+		case r := <-ElevStateMsgRx:
+			fmt.Println("Received msg: ", r)
 			UpdateElevStateArray(r)
-			fmt.Println(ElevStateArray)
+			SyncAllLights(ElevStateArray)
+
+		case b := <-drv_buttons:
+			fmt.Printf("%+v\n", b)
+
+			msg := NewOrderDistributer(ElevStateArray, b.Button, b.Floor, id, Elevator) //ny mld med hvem som skal ha ordre!
+
+			go func() {
+				//send newOrder message for 2 seconds then stop.
+				for timeout := time.After(1 * time.Second); ; {
+					select {
+					case <-timeout:
+						return
+					default:
+					}
+					NewOrderMsgTx <- msg
+					time.Sleep(100 * time.Millisecond)
+				}
+			}()
+		case m := <-NewOrderMsgRx:
+			fmt.Println("new order recieved: ", m)
+
+			if AcceptNewOrder(m, id, Elevator) { //is the new order for this elevator?
+				OnRequestButtonPress(m.Button.Floor, m.Button.Button) //sets button request == true on wanted elevator
+			}
+
+			elevstate = ElevStateMsg{
+				SenderId: id,
+				Message:  "State Update",
+				Elevator: Elevator,
+			} //oppdatere requests basert på knappetrykk
+
+		case a := <-drv_floors:
+			fmt.Printf("%+v\n", a)
+
+			OnFloorArrival(a)
+			OnFloorTimeOut()
+			elevstate = ElevStateMsg{
+				SenderId: id,
+				Message:  "State Update",
+				Elevator: Elevator, //sende over min state hele tiden!
+			}
+
+		case a := <-drv_obstr:
+			fmt.Printf("%+v\n", a)
+			if a {
+				SetMotorDirection(MD_Stop)
+			} else {
+				SetMotorDirection(d)
+			}
+
+		case a := <-drv_stop:
+			fmt.Printf("%+v\n", a)
+			for f := 0; f < numFloors; f++ {
+				for b := ButtonType(0); b < 3; b++ {
+					SetButtonLamp(b, f, false)
+				}
+			}
 		}
 	}
 
-	/*
-		numFloors := 4
-		Init("localhost:15657", numFloors)
-		var d MotorDirection = MD_Up
-		//elevio.SetMotorDirection(d)
-		drv_buttons := make(chan ButtonEvent)
-		drv_floors := make(chan int)
-		drv_obstr := make(chan bool)
-		drv_stop := make(chan bool)
-		go PollButtons(drv_buttons)
-		go PollFloorSensor(drv_floors)
-		go PollObstructionSwitch(drv_obstr)
-		go PollStopButton(drv_stop)
-		//drive down if between floors
-		//onInitBetweenFloors()
-		*/
-	
-	/*
-		// We make channels for sending and receiving our custom data types
-		helloTx := make(chan HelloMsg)
-		helloRx := make(chan HelloMsg)
-		// ... and start the transmitter/receiver pair on some port
-		// These functions can take any number of channels! It is also possible to
-		//  start multiple transmitters/receivers on the same port.
-		go bcast.Transmitter(16569, helloTx)
-		go bcast.Receiver(16569, helloRx) //10.100.23.209
-
-		//go Answerfunc()
-
-		// The example message. We just send one of these every second.
-		go func() {
-			helloMsg := HelloMsg{
-					Answer: false,
-					Message:"Hello from " + id,
-					R:[2][3]bool{
-						{true,false,false},
-						{false,true,false},
-					},
-					Iter: 0}
-			for {
-				helloMsg.Iter++
-				helloTx <- helloMsg
-				time.Sleep(3 * time.Second)
-			}
-		}()
-
-			for {
-				select{
-
-				case b := <-helloRx:
-					fmt.Printf("Received: %#v\n", b)
-					//svare at vi har motatt mld
-					if !b.Answer{
-					answerMsg:= HelloMsg{
-						Answer: true,
-						Message:"Answer from " + id,
-						R:[2][3]bool{
-								{true,false,false},
-								{false,true,false},
-						},
-						Iter: b.Iter+1}
-					helloTx <- answerMsg
-					time.Sleep(1 * time.Millisecond)
-					}
-				}
-			}
-	*/
-/*
-	   case a := <-helloTx:
-	   				fmt.Printf("Transmitted: %#v\n", a)
-	   	for {
-	   		select {
-	   		case a := <-drv_buttons:
-	   			fmt.Printf("%+v\n", a)
-	   			SetButtonLamp(a.Button, a.Floor, true)
-	   			SetLights(elevState)
-
-	   		case a := <-drv_floors:
-	   			fmt.Printf("%+v\n", a)
-	   			if a == numFloors-1 {
-	   				d = MD_Down
-	   			} else if a == 0 {
-	   				d = MD_Up
-	   			}
-	   			SetMotorDirection(d)
-
-	   		case a := <-drv_obstr:
-	   			fmt.Printf("%+v\n", a)
-	   			if a {
-	   				SetMotorDirection(MD_Stop)
-	   			} else {
-	   				SetMotorDirection(d)
-	   			}
-
-	   		case a := <-drv_stop:
-	   			fmt.Printf("%+v\n", a)
-	   			for f := 0; f < numFloors; f++ {
-	   				for b := ButtonType(0); b < 3; b++ {
-	   					SetButtonLamp(b, f, false)
-	   				}
-	   			}
-	   		}
-	   	}
-	*/
 }
