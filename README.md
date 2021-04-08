@@ -13,5 +13,5 @@ ssh student@10.100.23.131
 ssh student@10.100.23.139
 10.100.23.139, scp -r /home/student/group67/Elevator2021 student@10.100.23.139:/home/student 
 
-go run main.go -id=101
-go run main.go -id=102
+go run main.go -id=0
+go run main.go -id=1
