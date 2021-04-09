@@ -15,3 +15,6 @@ ssh student@10.100.23.139
 
 go run main.go -id=0
 go run main.go -id=1
+
+
+update go: https://khongwooilee.medium.com/how-to-update-the-go-version-6065f5c8c3ec
