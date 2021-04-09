@@ -71,20 +71,26 @@ func main() {
 	go PollObstructionSwitch(drv_obstr)
 	go PollStopButton(drv_stop)
 
+	powerloss:= make(chan NewOrderMsg)
+	//go DistibuteLostOrders(id,powerloss)
+	
+	timer_stop:= time.After(3 * time.Second)
+	
+
 	//drive down if between floors
 	if Between {
 		OnInitBetweenFloors()
 	}
-	//send current state on this format
-	elevstate := ElevStateMsg{
+	
+
+	elevstate:= ElevStateMsg{
 		SenderId: id,
 		Message:  "State Update",
 		Elevator: Elevator,
 	}
-
-	//send my state every 3 seconds, (could be to slow)
+	//send my state every 1 seconds, (could be to slow)
 	go func() {
-
+	
 		for {
 			ElevStateMsgTx <- elevstate
 			time.Sleep(1 * time.Second)
@@ -92,6 +98,8 @@ func main() {
 	}()
 
 	for {
+		
+
 		//SyncAllLights(ElevStateArray) //light lights based on current accepted orders, maybe need functionalities for -1 elevators
 		//fmt.Println("active e: ", ElevStateArray)
 		select {
@@ -103,17 +111,42 @@ func main() {
 			fmt.Printf("  Lost:     %q\n", p.Lost)
 
 			ActiveElevatorStates(p.Peers)
-			fmt.Println("update active e: ", ElevStateArray)
+			//fmt.Println("update active e: ", ElevStateArray)
+		case l := <-powerloss:
+			//update active elevators
+
+			//redistribuere alle ordre
+
+			//sende disse til de som skal ha dem
+			go func() {
+				//send newOrder message for 2 seconds then stop.
+				for timeout := time.After(1 * time.Second); ; {
+					select {
+					case <-timeout:
+						return
+					default:
+					}
+					NewOrderMsgTx <- l
+					time.Sleep(100 * time.Millisecond)
+				}
+			}()
+
 
 		case r := <-ElevStateMsgRx:
-			fmt.Println("Received msg: ", r)
+			//fmt.Println("Received msg: ", r.Elevator.Behaviour)
 			UpdateElevStateArray(r)
+			fmt.Println("elevstate msg lights")
 			SyncAllLights(ElevStateArray, id)
+
+			//lastElevStateMsg:= time.Now()
+
+			//sjekk om staten har endret seg
 
 		case b := <-drv_buttons:
 			fmt.Printf("%+v\n", b)
 
 			msg := NewOrderDistributer(ElevStateArray, b.Button, b.Floor, id, Elevator) //ny mld med hvem som skal ha ordre!
+			
 
 			go func() {
 				//send newOrder message for 2 seconds then stop.
@@ -127,6 +160,8 @@ func main() {
 					time.Sleep(100 * time.Millisecond)
 				}
 			}()
+			
+
 		case m := <-NewOrderMsgRx:
 			fmt.Println("new order recieved: ", m)
 
@@ -143,10 +178,11 @@ func main() {
 
 		case a := <-drv_floors:
 			fmt.Printf("%+v\n", a)
+			//Reset timer for powerloss
 
 			OnFloorArrival(a, id)
-			fmt.Println("goimg for on floor to on floor timeout")
-			//SyncAllLights(ElevStateArray, id)
+			fmt.Println("going for on floor to on floor timeout")
+			SyncAllLights(ElevStateArray, id)
 			OnFloorTimeOut()
 			elevstate = ElevStateMsg{
 				SenderId: id,
@@ -161,6 +197,9 @@ func main() {
 			} else {
 				SetMotorDirection(d)
 			}
+		case <-timer_stop:
+
+			OnFloorTimeOut()
 
 		case a := <-drv_stop:
 			fmt.Printf("%+v\n", a)
@@ -170,6 +209,7 @@ func main() {
 				}
 			}
 		}
+
 	}
 
 }

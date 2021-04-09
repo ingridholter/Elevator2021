@@ -3,11 +3,11 @@ package ElevatorObserver
 //module for keeping track over states in other elevator, handling message error and setting lights to "take order"
 
 import (
+	//"time"
 	"fmt"
 	. "main/config"
-
-	//. "main/costFunc"
-	"main/elevatorDriver"
+	. "main/costFunc"
+	//"main/elevatorDriver"
 	. "main/elevio"
 	"strconv"
 )
@@ -29,28 +29,50 @@ func AcceptNewOrder(msg NewOrderMsg, id string, elevator ElevState) bool {
 	return false
 }
 
-//tror ikke det blir problem når jeg selv skal ta ordre og sette lys og så får feil. OBS CAB lights!!
+//tror ikke det blir problem når jeg selv skal ta ordre og sette lys og så får feil.
 func SyncAllLights(allElevators [NumElevators]ElevState, id string) {
 
 	Id, _ := strconv.Atoi(id)
-	//fmt.Println(allElevators)
+	
 	for floor := 0; floor < NumFloors; floor++ {
 		SetButtonLamp(BT_Cab, floor, allElevators[Id].Requests[floor][2]) //this is for cab orders
 	}
 
-	for _, elevator := range allElevators {
-		if elevator.Floor != -1 {
-			elevatorDriver.SetLights(elevator)
-			fmt.Println("active elevator")
-		}
-
-		//fmt.Println("setting lights in elevatorObs")
+	lightsMatrix:= [4][3]bool{
+		{false, false, false},
+		{false, false, false},
+		{false, false, false},
+		{false, false, false},
 	}
+ 
+	for index, elevator := range allElevators{
+		if elevator.Floor != -1 {
+			
+			//får en lights ,atrix with all lights for all elevators
+			for floor := 0; floor < NumFloors; floor++ {
+				for btn := 0; btn < NumButtons; btn++ {
+					lightsMatrix[floor][btn] = lightsMatrix[floor][btn] || elevator.Requests[floor][btn]
+				}
+			}
 
+			for floor := 0; floor < NumFloors; floor++ {
+				for btn := 0; btn < NumButtons-1; btn++ {
+					SetButtonLamp(ButtonType(btn), floor, lightsMatrix[floor][btn]) 
+				}
+			}
+		//network loss, if i am off the network is my floor -1? så vet ikke om dette er nødvendig?
+		}else if Id == index{
+			for floor := 0; floor < NumFloors; floor++ {
+				for btn := 0; btn < NumButtons; btn++ {
+					SetButtonLamp(ButtonType(btn), floor, elevator.Requests[floor][btn])
+				}
+			}
+		}
+	}
 }
 
 func UpdateElevStateArray(msg ElevStateMsg) {
-	fmt.Println("update Elev state array: ", msg)
+	fmt.Println("update Elev state array: ", msg.Elevator.Requests)
 
 	id, _ := strconv.Atoi(msg.SenderId)
 
@@ -94,17 +116,41 @@ func ActiveElevatorStates(peers []string) {
 	}
 	ElevStateArray = ActiveElevatorStates
 }
+/*
+func TimerPowerloss(powerlossAlarm chan<- bool){
+	//hver gang state endrer seg så nullstille timer.
+	T := time.NewTimer()
+	for{
+		select{
+			case
+		}
+	}
 
+	if timer expired && ElevStateArray[Id].Requests[floor][btn] == true{
+		powerlossAlarm <- true
+	}
+}
+*/
 //redistrubuere ordrene til en tapt heis. OBS IKKE CAB ORDERS!!
-func DistibuteLostOrders(lost []string) {
-	for _, id := range lost {
-		Id, _ := strconv.Atoi(id)
-		for floor := 0; floor < NumFloors; floor++ {
-			for btn := 0; btn < NumButtons; btn++ {
-				if ElevStateArray[Id].Requests[floor][btn] {
-					//msg := NewOrderDistributer(ElevStateArray, ButtonType(btn), floor, id, Elevator)
-					//send <- msg //send to channel :)
-				}
+func DistibuteLostOrders(powerLossId string,powerloss chan<- NewOrderMsg) {
+	/*
+	for{
+		select{
+			case t <-powerlossAlarm
+				//GJØR alt som står under
+		}
+	}
+	*/
+	//sjekk alarm gått ut her??
+		//update activeelevators
+
+	Id, _ := strconv.Atoi(powerLossId)
+
+	for floor := 0; floor < NumFloors; floor++ {
+		for btn := 0; btn < NumButtons; btn++ {
+			if ElevStateArray[Id].Requests[floor][btn] {
+				msg := NewOrderDistributer(ElevStateArray, ButtonType(btn), floor, powerLossId, ElevStateArray[Id])
+				powerloss <- msg
 			}
 		}
 	}

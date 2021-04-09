@@ -62,8 +62,4 @@ type ElevStateMsg struct {
 	Elevator ElevState
 }
 
-type PowerLoss struct {
-	Id       int
-	Message  string
-	Elevator ElevState
-}
+

@@ -5,32 +5,34 @@ import (
 	. "main/config"
 	. "main/elevio"
 	"time"
+	. "main/lights"
+	"strconv"
 )
 
+/* Prøv å gjøre dette for timerDoor()
+go func() {
+	//send newOrder message for 2 seconds then stop.
+	for timeout := time.After(1 * time.Second); ; {
+		select {
+		case <-timeout:
+			return
+		default:
+		}
+		NewOrderMsgTx <- l
+		time.Sleep(100 * time.Millisecond)
+	}
+}()
+*/
+
+var Timer = time.NewTimer(3 * time.Second)
+
 func TimerDoor() { //funker som en sleep i 3 sekunder
+
 	fmt.Println("TIMER")
-	var Timer = time.NewTimer(3 * time.Second)
 
-	if !Timer.Stop() {
-		<-Timer.C
-		fmt.Println("in if check")
-	}
+	<-Timer.C
 
-	fmt.Println("before reset")
-	Timer.Reset(3 * time.Second)
-	fmt.Println("after reset")
-
-	go func() {
-		<-Timer.C
-		fmt.Println("timer fired")
-	}()
-
-	//stop := Timer.Stop()
-	/*if stop {
-		fmt.Println("timer stopped")
-	}
-	*/
-	//Timer.Reset(3 * time.Second)
+	fmt.Println("timer expired")
 }
 
 func OnInitBetweenFloors() {
@@ -51,10 +53,15 @@ func SetLights(elev ElevState) {
 }
 
 func OnRequestButtonPress(btnFloor int, btnType ButtonType) {
+
+	Timer.Reset(3*time.Second)
+
 	switch Elevator.Behaviour {
 	case EBdoorOpen:
 		if Elevator.Floor == btnFloor {
 			TimerDoor() //start timer for door
+			OnFloorTimeOut()
+
 		} else {
 			Elevator.Requests[btnFloor][btnType] = true
 		}
@@ -65,6 +72,7 @@ func OnRequestButtonPress(btnFloor int, btnType ButtonType) {
 			SetDoorOpenLamp(true)
 			TimerDoor() //timer start
 			Elevator.Behaviour = EBdoorOpen
+			OnFloorTimeOut()
 		} else {
 			Elevator.Requests[btnFloor][btnType] = true
 			Elevator.Dir = RequestChooseDirection(Elevator)
@@ -80,16 +88,27 @@ func OnRequestButtonPress(btnFloor int, btnType ButtonType) {
 
 func OnFloorArrival(newFloor int, id string) {
 	//can print the new floor and the state of elevator
-	//Id, _ := strconv.Atoi(id)
+	Id, _ := strconv.Atoi(id)
+
 	Elevator.Floor = newFloor
 	SetFloorIndicator(Elevator.Floor)
+
+	Timer.Reset(3*time.Second)
+	fmt.Println("timer reset")
+
 	switch Elevator.Behaviour {
 	case EBmoving:
 		if RequestShouldStop(Elevator) {
 			SetMotorDirection(MD_Stop)
 			fmt.Println("set open door lamp")
 			SetDoorOpenLamp(true)
+			
 			Elevator = RequestClearAtCurrentFloor(Elevator)
+			ElevStateArray[Id] = Elevator
+
+
+			SyncAllLights(ElevStateArray, id)
+
 			TimerDoor() //start timer for door
 			//SetLights(Elevator) vet ikke om det går fint at den er med her eller ikke
 			Elevator.Behaviour = EBdoorOpen

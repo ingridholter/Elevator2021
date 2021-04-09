@@ -100,7 +100,7 @@ func timeToIdle(eOld ElevState) int {
 }
 
 //send msg to the id that should take the order
-func NewOrderDistributer(eOld [NumElevators]ElevState, btnType ButtonType, f int, id string, elevator ElevState) NewOrderMsg {
+func NewOrderDistributer(eOld [NumElevators]ElevState, btnType ButtonType, f int, id string, elevator ElevState) NewOrderMsg{
 
 	//min id
 	Id, _ := strconv.Atoi(id)
