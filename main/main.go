@@ -71,26 +71,28 @@ func main() {
 	go PollObstructionSwitch(drv_obstr)
 	go PollStopButton(drv_stop)
 
-	powerloss:= make(chan NewOrderMsg)
+	chan_timer := make(chan bool, 1)
+	go Timer(chan_timer)
+
+	Timer := time.NewTimer(3 * time.Second)
+	Timer.Stop()
+
+	powerloss := make(chan NewOrderMsg)
 	//go DistibuteLostOrders(id,powerloss)
-	
-	timer_stop:= time.After(3 * time.Second)
-	
 
 	//drive down if between floors
 	if Between {
 		OnInitBetweenFloors()
 	}
-	
 
-	elevstate:= ElevStateMsg{
+	elevstate := ElevStateMsg{
 		SenderId: id,
 		Message:  "State Update",
 		Elevator: Elevator,
 	}
 	//send my state every 1 seconds, (could be to slow)
 	go func() {
-	
+
 		for {
 			ElevStateMsgTx <- elevstate
 			time.Sleep(1 * time.Second)
@@ -98,7 +100,6 @@ func main() {
 	}()
 
 	for {
-		
 
 		//SyncAllLights(ElevStateArray) //light lights based on current accepted orders, maybe need functionalities for -1 elevators
 		//fmt.Println("active e: ", ElevStateArray)
@@ -131,22 +132,20 @@ func main() {
 				}
 			}()
 
-
 		case r := <-ElevStateMsgRx:
 			//fmt.Println("Received msg: ", r.Elevator.Behaviour)
 			UpdateElevStateArray(r)
-			fmt.Println("elevstate msg lights")
+			//fmt.Println("elevstate msg lights")
 			SyncAllLights(ElevStateArray, id)
 
 			//lastElevStateMsg:= time.Now()
 
-			//sjekk om staten har endret seg
+			//sjekk om staten har endret seg for alle heiser bortsett fra deg,
 
 		case b := <-drv_buttons:
 			fmt.Printf("%+v\n", b)
 
 			msg := NewOrderDistributer(ElevStateArray, b.Button, b.Floor, id, Elevator) //ny mld med hvem som skal ha ordre!
-			
 
 			go func() {
 				//send newOrder message for 2 seconds then stop.
@@ -160,14 +159,13 @@ func main() {
 					time.Sleep(100 * time.Millisecond)
 				}
 			}()
-			
 
 		case m := <-NewOrderMsgRx:
-			fmt.Println("new order recieved: ", m)
+			//fmt.Println("new order recieved: ", m)
 
 			if AcceptNewOrder(m, id, Elevator) { //is the new order for this elevator?
 				SyncAllLights(ElevStateArray, id)
-				OnRequestButtonPress(m.Button.Floor, m.Button.Button) //sets button request == true on wanted elevator
+				OnRequestButtonPress(m.Button.Floor, m.Button.Button, Timer) //sets button request == true on wanted elevator
 			}
 
 			elevstate = ElevStateMsg{
@@ -177,13 +175,13 @@ func main() {
 			} //oppdatere requests basert på knappetrykk
 
 		case a := <-drv_floors:
-			fmt.Printf("%+v\n", a)
+			fmt.Printf("floor: %+v\n", a)
 			//Reset timer for powerloss
 
-			OnFloorArrival(a, id)
-			fmt.Println("going for on floor to on floor timeout")
+			OnFloorArrival(a, id, Timer)
 			SyncAllLights(ElevStateArray, id)
-			OnFloorTimeOut()
+
+			//OnFloorTimeOut()
 			elevstate = ElevStateMsg{
 				SenderId: id,
 				Message:  "State Update",
@@ -197,7 +195,7 @@ func main() {
 			} else {
 				SetMotorDirection(d)
 			}
-		case <-timer_stop:
+		case <-Timer.C:
 
 			OnFloorTimeOut()
 
