@@ -1,6 +1,7 @@
 package main
 
 import (
+	"sync"
 	"flag"
 	"fmt"
 	. "main/ElevatorObserver"
@@ -15,9 +16,11 @@ import (
 )
 
 func main() {
+	var _mtx sync.Mutex
+	var _mtx2 sync.Mutex
 
 	var id string
-	flag.StringVar(&id, "id", "", "id of this peer") //(p *string, name string, value string, usage string)
+	flag.StringVar(&id, "id", "", "id of this peer")
 
 	if id == "" {
 		localIP, err := peers.LocalIP()
@@ -44,7 +47,6 @@ func main() {
 	go peers.Transmitter(20008, id, peerTxEnable)
 	go peers.Receiver(20008, peerUpdateCh)
 
-	// We make channels for sending and receiving our custom data types
 	ElevStateMsgTx := make(chan ElevStateMsg)
 	ElevStateMsgRx := make(chan ElevStateMsg)
 	NewOrderMsgTx := make(chan NewOrderMsg)
@@ -60,6 +62,7 @@ func main() {
 
 	numFloors := 4
 	Init(simport, numFloors)
+	fmt.Println("init state: ",Elevator.Behaviour)
 	var d MotorDirection = MD_Up //trenger denne?
 
 	drv_buttons := make(chan ButtonEvent)
@@ -74,14 +77,25 @@ func main() {
 	chan_timer := make(chan bool, 1)
 	go Timer(chan_timer)
 
-	Timer := time.NewTimer(3 * time.Second)
+	Timer := time.NewTimer(2 * time.Second)
 	Timer.Stop()
 
-	powerloss := make(chan NewOrderMsg)
+	
+	for i:= range ElevatorLastMoved{
+		ElevatorLastMoved[i] =  time.NewTimer(7 * time.Second)
+	}
+	
+	lostId := make(chan int)
+	go IdElevatorLost(lostId)
+
+
+	
+	lostOrders := make(chan NewOrderMsg)
 	//go DistibuteLostOrders(id,powerloss)
 
 	//drive down if between floors
 	if Between {
+		fmt.Println("on init between floors")
 		OnInitBetweenFloors()
 	}
 
@@ -90,19 +104,24 @@ func main() {
 		Message:  "State Update",
 		Elevator: Elevator,
 	}
-	//send my state every 1 seconds, (could be to slow)
-	go func() {
 
+	
+	//send my state every 1 seconds, (could be to slow)
+	
+	go func() {
 		for {
+			_mtx.Lock()
 			ElevStateMsgTx <- elevstate
+			_mtx.Unlock()
 			time.Sleep(1 * time.Second)
+		
 		}
+		
 	}()
+	
 
 	for {
 
-		//SyncAllLights(ElevStateArray) //light lights based on current accepted orders, maybe need functionalities for -1 elevators
-		//fmt.Println("active e: ", ElevStateArray)
 		select {
 		case p := <-peerUpdateCh:
 
@@ -111,9 +130,17 @@ func main() {
 			fmt.Printf("  New:      %q\n", p.New)
 			fmt.Printf("  Lost:     %q\n", p.Lost)
 
+			//evnt gjøre noe med new mtp software kræsj
+
+			//Ta lost sine cab orders og lagre dem. 
+
+			//når koblet på igjen: send msg om cab ordren til den som er new.
+
+			//i en annen case: ta new sin cab order kolonne og or'e med lagret cab orders
+
 			ActiveElevatorStates(p.Peers)
 			//fmt.Println("update active e: ", ElevStateArray)
-		case l := <-powerloss:
+		case l := <- lostOrders:
 			//update active elevators
 
 			//redistribuere alle ordre
@@ -121,26 +148,29 @@ func main() {
 			//sende disse til de som skal ha dem
 			go func() {
 				//send newOrder message for 2 seconds then stop.
-				for timeout := time.After(1 * time.Second); ; {
+				for timeout := time.After(500 * time.Millisecond); ; {
 					select {
 					case <-timeout:
 						return
 					default:
 					}
+					_mtx2.Lock() 
 					NewOrderMsgTx <- l
+					_mtx2.Unlock() 
 					time.Sleep(100 * time.Millisecond)
 				}
 			}()
 
 		case r := <-ElevStateMsgRx:
 			//fmt.Println("Received msg: ", r.Elevator.Behaviour)
+			
+		
+			TimerElevatorLost(r,id)
+
 			UpdateElevStateArray(r)
-			//fmt.Println("elevstate msg lights")
+			
 			SyncAllLights(ElevStateArray, id)
-
-			//lastElevStateMsg:= time.Now()
-
-			//sjekk om staten har endret seg for alle heiser bortsett fra deg,
+			
 
 		case b := <-drv_buttons:
 			fmt.Printf("%+v\n", b)
@@ -155,7 +185,9 @@ func main() {
 						return
 					default:
 					}
+					_mtx2.Lock() 
 					NewOrderMsgTx <- msg
+					_mtx2.Unlock() 
 					time.Sleep(100 * time.Millisecond)
 				}
 			}()
@@ -167,13 +199,15 @@ func main() {
 				SyncAllLights(ElevStateArray, id)
 				OnRequestButtonPress(m.Button.Floor, m.Button.Button, Timer) //sets button request == true on wanted elevator
 			}
-
+			
+			_mtx.Lock()
 			elevstate = ElevStateMsg{
 				SenderId: id,
 				Message:  "State Update",
 				Elevator: Elevator,
 			} //oppdatere requests basert på knappetrykk
-
+			_mtx.Unlock()
+			
 		case a := <-drv_floors:
 			fmt.Printf("floor: %+v\n", a)
 			//Reset timer for powerloss
@@ -181,12 +215,15 @@ func main() {
 			OnFloorArrival(a, id, Timer)
 			SyncAllLights(ElevStateArray, id)
 
-			//OnFloorTimeOut()
+			_mtx.Lock()
+			
 			elevstate = ElevStateMsg{
 				SenderId: id,
 				Message:  "State Update",
 				Elevator: Elevator, //sende over min state hele tiden!
 			}
+			_mtx.Unlock()
+		
 
 		case a := <-drv_obstr:
 			fmt.Printf("%+v\n", a)
@@ -196,8 +233,12 @@ func main() {
 				SetMotorDirection(d)
 			}
 		case <-Timer.C:
+			OnDoorTimeOut()
 
-			OnFloorTimeOut()
+		case id:= <-lostId:
+			//alarm
+			fmt.Println("in lostId: ", id)
+			DistibuteLostOrders(id, lostOrders)
 
 		case a := <-drv_stop:
 			fmt.Printf("%+v\n", a)

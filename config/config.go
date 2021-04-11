@@ -1,5 +1,9 @@
 package config
 
+import(
+	"time"
+)
+
 const (
 	PeerId           = 0 //change for different computers? not here changed in main.
 	NumElevators     = 3
@@ -12,6 +16,8 @@ var Elevator ElevState //elevator state variable
 //var ActiveElevators = 3 //len(peers)
 var AllRequests [NumFloors][NumButtons * NumElevators]bool
 var ElevStateArray [NumElevators]ElevState
+
+var ElevatorLastMoved [NumElevators]*time.Timer
 
 type ButtonType int
 

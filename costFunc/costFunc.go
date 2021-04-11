@@ -15,8 +15,8 @@ import (
 func bestElevator(eOld [NumElevators]ElevState) int {
 	CostMap := make(map[int]int)
 	for elevNum := 0; elevNum < NumElevators; elevNum++ {
-		if eOld[elevNum].Floor == -1 {
-			CostMap[elevNum] = 9999 //infinity
+		if eOld[elevNum].Floor == -2 {
+			CostMap[elevNum] = 99999999 //infinity
 		} else {
 			CostMap[elevNum] = timeToIdle(eOld[elevNum])
 		}
@@ -26,19 +26,21 @@ func bestElevator(eOld [NumElevators]ElevState) int {
 
 		if value < minTime {
 			minTime = value
+			fmt.Println("min time: ", minTime)
 		}
 
 	}
 	fmt.Println(CostMap)
 	for key, value := range CostMap {
-
+		fmt.Println("key ", key, "value ",value)
 		if value == minTime {
+			fmt.Println("key: ",key)
 			return key
 		}
 
 	}
-	//return 0 if could not find best elevator
-	return 0
+	//return -1 if could not find best elevator
+	return -1
 }
 
 //simualte clearing orders
@@ -72,7 +74,7 @@ func timeToIdle(eOld ElevState) int {
 	const DOOROPENTIME = 3000 //hva skal door open time være?
 
 	var duration int = 0
-
+	fmt.Println("behaviour: ",e.Behaviour)
 	switch e.Behaviour {
 	case EBidle:
 		e.Dir = RequestChooseDirection(e)

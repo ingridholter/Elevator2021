@@ -27,16 +27,16 @@ func SetLights(elev ElevState) {
 
 func OnRequestButtonPress(btnFloor int, btnType ButtonType, timer *time.Timer) {
 
-	//timer.Reset(3 * time.Second)
+	
 	fmt.Println("adding to my requests")
 	switch Elevator.Behaviour {
 	case EBdoorOpen:
 		if Elevator.Floor == btnFloor {
 			fmt.Println("RESET O")
-			timer.Reset(3 * time.Second) //TimerDoor() //start timer for door
+			timer.Reset(2 * time.Second)
 			//så slette ordren?
 			Elevator = RequestClearAtCurrentFloor(Elevator)
-			//OnFloorTimeOut()
+		
 
 		} else {
 			Elevator.Requests[btnFloor][btnType] = true
@@ -47,9 +47,9 @@ func OnRequestButtonPress(btnFloor int, btnType ButtonType, timer *time.Timer) {
 		if Elevator.Floor == btnFloor {
 			SetDoorOpenLamp(true)
 			fmt.Println("RESET I")
-			timer.Reset(3 * time.Second) //TimerDoor() //timer start
+			timer.Reset(2 * time.Second) //TimerDoor() //timer start
 			Elevator.Behaviour = EBdoorOpen
-			//OnFloorTimeOut()
+			
 		} else {
 			Elevator.Requests[btnFloor][btnType] = true
 			Elevator.Dir = RequestChooseDirection(Elevator)
@@ -57,8 +57,6 @@ func OnRequestButtonPress(btnFloor int, btnType ButtonType, timer *time.Timer) {
 			Elevator.Behaviour = EBmoving
 		}
 	}
-	//fmt.Println("LIGHTS IN fsm")
-	//SetLights(Elevator)
 	//fmt.Println("Elevator ", Elevator)
 	//can print the state of elevator for debugg process
 }
@@ -69,6 +67,7 @@ func OnFloorArrival(newFloor int, id string, timer *time.Timer) {
 
 	Elevator.Floor = newFloor
 	SetFloorIndicator(Elevator.Floor)
+	fmt.Println("state:",Elevator.Behaviour)
 
 	switch Elevator.Behaviour {
 	case EBmoving:
@@ -82,7 +81,7 @@ func OnFloorArrival(newFloor int, id string, timer *time.Timer) {
 
 			//SyncAllLights(ElevStateArray, id)
 			fmt.Println("RESET M")
-			timer.Reset(3 * time.Second) //TimerDoor() //start timer for door
+			timer.Reset(2 * time.Second) //TimerDoor() //start timer for door
 			//SetLights(Elevator) vet ikke om det går fint at den er med her eller ikke
 			Elevator.Behaviour = EBdoorOpen
 		}
@@ -90,7 +89,7 @@ func OnFloorArrival(newFloor int, id string, timer *time.Timer) {
 	//can print state
 }
 
-func OnFloorTimeOut() {
+func OnDoorTimeOut() {
 	//can print elevator state and function
 	fmt.Println("IN ON FLOOR TIME OUT")
 	switch Elevator.Behaviour {

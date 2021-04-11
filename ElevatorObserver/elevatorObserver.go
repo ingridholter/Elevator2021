@@ -3,7 +3,7 @@ package ElevatorObserver
 //module for keeping track over states in other elevator, handling message error and setting lights to "take order"
 
 import (
-	//"time"
+	"time"
 
 	"fmt"
 	. "main/config"
@@ -21,7 +21,7 @@ func AcceptNewOrder(msg NewOrderMsg, id string, elevator ElevState) bool {
 
 		//gjøre dette i fsm
 		//elevator.Requests[msg.Button.Floor][msg.Button.Button] = true //legger til ordre i min lokale matrise
-		fmt.Println("my order")
+		fmt.Println("my order: ", msg.Button)
 		return true
 	}
 	return false
@@ -44,9 +44,9 @@ func SyncAllLights(allElevators [NumElevators]ElevState, id string) {
 	}
 
 	for index, elevator := range allElevators {
-		if elevator.Floor != -1 {
+		if elevator.Floor != -2 {
 
-			//får en lights ,atrix with all lights for all elevators
+			//får en lights matrix with all lights for all elevators
 			for floor := 0; floor < NumFloors; floor++ {
 				for btn := 0; btn < NumButtons; btn++ {
 					lightsMatrix[floor][btn] = lightsMatrix[floor][btn] || elevator.Requests[floor][btn]
@@ -58,7 +58,7 @@ func SyncAllLights(allElevators [NumElevators]ElevState, id string) {
 					SetButtonLamp(ButtonType(btn), floor, lightsMatrix[floor][btn])
 				}
 			}
-			//network loss, if i am off the network is my floor -1? så vet ikke om dette er nødvendig?
+			//network loss, if i am off the network is my floor -2? så vet ikke om dette er nødvendig?
 		} else if Id == index {
 			for floor := 0; floor < NumFloors; floor++ {
 				for btn := 0; btn < NumButtons; btn++ {
@@ -93,64 +93,89 @@ func ActiveElevatorStates(peers []string) {
 	var ActiveElevatorStates [NumElevators]ElevState
 
 	//error state
-	var err = ElevState{
-		Floor:     -1,
-		Dir:       MD_Stop,
-		Behaviour: EBmoving,
-		Requests: [4][3]bool{
-			{false, false, false},
-			{false, false, false},
-			{false, false, false},
-			{false, false, false},
-		},
-	}
+	var err = -2
+	
 	//0,1,2
 	for i := 0; i < NumElevators; i++ {
 		if elevatorActive(i, peers) {
 			ActiveElevatorStates[i] = ElevStateArray[i]
 		} else {
-			ActiveElevatorStates[i] = err
+			ActiveElevatorStates[i].Floor = err
 		}
 	}
 	ElevStateArray = ActiveElevatorStates
 }
 
-/*
-func TimerPowerloss(powerlossAlarm chan<- bool){
-	//hver gang state endrer seg så nullstille timer.
-	T := time.NewTimer()
-	for{
-		select{
-			case
-		}
-	}
-
-	if timer expired && ElevStateArray[Id].Requests[floor][btn] == true{
-		powerlossAlarm <- true
-	}
-}
-*/
-//redistrubuere ordrene til en tapt heis. OBS IKKE CAB ORDERS!!
-func DistibuteLostOrders(powerLossId string, powerloss chan<- NewOrderMsg) {
-	/*
-		for{
-			select{
-				case t <-powerlossAlarm
-					//GJØR alt som står under
-			}
-		}
-	*/
-	//sjekk alarm gått ut her??
-	//update activeelevators
-
-	Id, _ := strconv.Atoi(powerLossId)
+func AnyRequestsExist(elevator ElevState) bool{
 
 	for floor := 0; floor < NumFloors; floor++ {
 		for btn := 0; btn < NumButtons; btn++ {
-			if ElevStateArray[Id].Requests[floor][btn] {
-				msg := NewOrderDistributer(ElevStateArray, ButtonType(btn), floor, powerLossId, ElevStateArray[Id])
-				powerloss <- msg
+			if elevator.Requests[floor][btn] {
+				return true
 			}
 		}
 	}
+	return false
+}
+
+
+func TimerElevatorLost(msg ElevStateMsg,id string){
+	//Id, _ := strconv.Atoi(id)
+	SenderIdInt,_:=strconv.Atoi(msg.SenderId)
+
+	oldElevState := ElevStateArray[SenderIdInt]
+	newElevState := msg.Elevator
+
+	//fmt.Println("any requests? ",AnyRequestsExist(oldElevState))
+
+	//fmt.Println("old: ",oldElevState)
+	//fmt.Println("new: ",newElevState)
+
+	if oldElevState.Floor != newElevState.Floor ||  oldElevState.Dir != newElevState.Dir || oldElevState.Behaviour != newElevState.Behaviour{
+		//fmt.Println("Resetting timer")
+		ElevatorLastMoved[SenderIdInt].Reset(5*time.Second)
+	}else if !AnyRequestsExist(oldElevState){
+		//fmt.Println("dont have requests, resetting timer")
+		ElevatorLastMoved[SenderIdInt].Reset(5*time.Second)
+	}
+	
+}
+
+
+func IdElevatorLost(LostId chan<- int){
+
+	for{
+	for i:= range ElevatorLastMoved{
+		a :=ElevatorLastMoved[i]
+	
+		select{
+			case <-a.C:
+				LostId <- i
+			}
+		}
+	}
+}
+
+
+//redistrubuere ordrene til en tapt heis. OBS IKKE CAB ORDERS!!
+func DistibuteLostOrders(LostId int, lostOrders chan<- NewOrderMsg) {
+
+	//lagrer lost id sine request i ny matrise
+	LostRequests:= ElevStateArray[LostId].Requests
+
+	//oppdate elevarray til at den er død
+	ElevStateArray[LostId].Floor =  -2
+
+	//slette ordrene til den heisen?
+
+	//loop gjennom alle den dødes ordre og fordele de med newOrderDistributer.
+	for floor := 0; floor < NumFloors; floor++ {
+		for btn := 0; btn < NumButtons; btn++ {
+			if LostRequests[floor][btn] {
+				msg := NewOrderDistributer(ElevStateArray, ButtonType(btn), floor, strconv.Itoa(LostId), ElevStateArray[LostId])
+				lostOrders <- msg
+			}
+		}
+	}
+
 }

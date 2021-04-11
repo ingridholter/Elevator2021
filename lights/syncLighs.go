@@ -23,7 +23,7 @@ func SyncAllLights(allElevators [NumElevators]ElevState, id string) {
 	}
  
 	for index, elevator := range allElevators{
-		if elevator.Floor != -1 {
+		if elevator.Floor != -2 {
 			
 			//får en lights ,atrix with all lights for all elevators
 			for floor := 0; floor < NumFloors; floor++ {
@@ -37,7 +37,7 @@ func SyncAllLights(allElevators [NumElevators]ElevState, id string) {
 					SetButtonLamp(ButtonType(btn), floor, lightsMatrix[floor][btn]) 
 				}
 			}
-		//network loss, if i am off the network is my floor -1? så vet ikke om dette er nødvendig?
+		//network loss, if i am off the network is my floor -2? så vet ikke om dette er nødvendig?
 		}else if Id == index{
 			for floor := 0; floor < NumFloors; floor++ {
 				for btn := 0; btn < NumButtons; btn++ {
