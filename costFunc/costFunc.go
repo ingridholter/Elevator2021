@@ -1,6 +1,7 @@
 package costFunc
 
 import (
+	"fmt"
 	. "main/config"
 	. "main/elevatorDriver"
 	"strconv"
@@ -28,6 +29,7 @@ func bestElevator(eOld [NumElevators]ElevState) int {
 		}
 
 	}
+	fmt.Println(CostMap)
 	for key, value := range CostMap {
 
 		if value == minTime {
@@ -66,15 +68,15 @@ func SimualtionRequestClearAtCurrentFloor(eOld ElevState) ElevState {
 
 func timeToIdle(eOld ElevState) int {
 	e := eOld
-	var TRAVELTIME = 3   //hva skal travel time være?
-	var DOOROPENTIME = 3 //hva skal door open time være?
+	const TRAVELTIME = 2500   //hva skal travel time være?
+	const DOOROPENTIME = 3000 //hva skal door open time være?
 
 	var duration int = 0
 
 	switch e.Behaviour {
 	case EBidle:
 		e.Dir = RequestChooseDirection(e)
-		if e.Dir == EBstop {
+		if e.Dir == MD_Stop {
 			return duration
 		}
 	case EBmoving:
@@ -100,7 +102,7 @@ func timeToIdle(eOld ElevState) int {
 }
 
 //send msg to the id that should take the order
-func NewOrderDistributer(eOld [NumElevators]ElevState, btnType ButtonType, f int, id string, elevator ElevState) NewOrderMsg{
+func NewOrderDistributer(eOld [NumElevators]ElevState, btnType ButtonType, f int, id string, elevator ElevState) NewOrderMsg {
 
 	//min id
 	Id, _ := strconv.Atoi(id)

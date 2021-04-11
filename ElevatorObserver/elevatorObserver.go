@@ -4,9 +4,11 @@ package ElevatorObserver
 
 import (
 	//"time"
+
 	"fmt"
 	. "main/config"
 	. "main/costFunc"
+
 	//"main/elevatorDriver"
 	. "main/elevio"
 	"strconv"
@@ -14,16 +16,12 @@ import (
 
 //Hvis fått mld om å ta ordre og den er din å ta, legg til i din requests.
 func AcceptNewOrder(msg NewOrderMsg, id string, elevator ElevState) bool {
-	//senderId, _ := strconv.Atoi(msg.SenderId)
-	//recieverId, _ := strconv.Atoi(msg.RecieverId)
-	if id == msg.SenderId {
-		//sjekke om noen andre vet om denne ordren? Nei tror det går fint
-		return true
-	}
+
 	if id == msg.RecieverId {
 
 		//gjøre dette i fsm
 		//elevator.Requests[msg.Button.Floor][msg.Button.Button] = true //legger til ordre i min lokale matrise
+		fmt.Println("my order")
 		return true
 	}
 	return false
@@ -33,21 +31,21 @@ func AcceptNewOrder(msg NewOrderMsg, id string, elevator ElevState) bool {
 func SyncAllLights(allElevators [NumElevators]ElevState, id string) {
 
 	Id, _ := strconv.Atoi(id)
-	
+
 	for floor := 0; floor < NumFloors; floor++ {
 		SetButtonLamp(BT_Cab, floor, allElevators[Id].Requests[floor][2]) //this is for cab orders
 	}
 
-	lightsMatrix:= [4][3]bool{
+	lightsMatrix := [4][3]bool{
 		{false, false, false},
 		{false, false, false},
 		{false, false, false},
 		{false, false, false},
 	}
- 
-	for index, elevator := range allElevators{
+
+	for index, elevator := range allElevators {
 		if elevator.Floor != -1 {
-			
+
 			//får en lights ,atrix with all lights for all elevators
 			for floor := 0; floor < NumFloors; floor++ {
 				for btn := 0; btn < NumButtons; btn++ {
@@ -57,11 +55,11 @@ func SyncAllLights(allElevators [NumElevators]ElevState, id string) {
 
 			for floor := 0; floor < NumFloors; floor++ {
 				for btn := 0; btn < NumButtons-1; btn++ {
-					SetButtonLamp(ButtonType(btn), floor, lightsMatrix[floor][btn]) 
+					SetButtonLamp(ButtonType(btn), floor, lightsMatrix[floor][btn])
 				}
 			}
-		//network loss, if i am off the network is my floor -1? så vet ikke om dette er nødvendig?
-		}else if Id == index{
+			//network loss, if i am off the network is my floor -1? så vet ikke om dette er nødvendig?
+		} else if Id == index {
 			for floor := 0; floor < NumFloors; floor++ {
 				for btn := 0; btn < NumButtons; btn++ {
 					SetButtonLamp(ButtonType(btn), floor, elevator.Requests[floor][btn])
@@ -72,7 +70,7 @@ func SyncAllLights(allElevators [NumElevators]ElevState, id string) {
 }
 
 func UpdateElevStateArray(msg ElevStateMsg) {
-	fmt.Println("update Elev state array: ", msg.Elevator.Requests)
+	//fmt.Println("update Elev state array: ", msg.Elevator.Requests)
 
 	id, _ := strconv.Atoi(msg.SenderId)
 
@@ -116,6 +114,7 @@ func ActiveElevatorStates(peers []string) {
 	}
 	ElevStateArray = ActiveElevatorStates
 }
+
 /*
 func TimerPowerloss(powerlossAlarm chan<- bool){
 	//hver gang state endrer seg så nullstille timer.
@@ -132,17 +131,17 @@ func TimerPowerloss(powerlossAlarm chan<- bool){
 }
 */
 //redistrubuere ordrene til en tapt heis. OBS IKKE CAB ORDERS!!
-func DistibuteLostOrders(powerLossId string,powerloss chan<- NewOrderMsg) {
+func DistibuteLostOrders(powerLossId string, powerloss chan<- NewOrderMsg) {
 	/*
-	for{
-		select{
-			case t <-powerlossAlarm
-				//GJØR alt som står under
+		for{
+			select{
+				case t <-powerlossAlarm
+					//GJØR alt som står under
+			}
 		}
-	}
 	*/
 	//sjekk alarm gått ut her??
-		//update activeelevators
+	//update activeelevators
 
 	Id, _ := strconv.Atoi(powerLossId)
 

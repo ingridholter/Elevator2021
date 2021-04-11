@@ -4,36 +4,11 @@ import (
 	"fmt"
 	. "main/config"
 	. "main/elevio"
-	"time"
-	. "main/lights"
+
+	//. "main/lights"
 	"strconv"
+	"time"
 )
-
-/* Prøv å gjøre dette for timerDoor()
-go func() {
-	//send newOrder message for 2 seconds then stop.
-	for timeout := time.After(1 * time.Second); ; {
-		select {
-		case <-timeout:
-			return
-		default:
-		}
-		NewOrderMsgTx <- l
-		time.Sleep(100 * time.Millisecond)
-	}
-}()
-*/
-
-var Timer = time.NewTimer(3 * time.Second)
-
-func TimerDoor() { //funker som en sleep i 3 sekunder
-
-	fmt.Println("TIMER")
-
-	<-Timer.C
-
-	fmt.Println("timer expired")
-}
 
 func OnInitBetweenFloors() {
 	SetMotorDirection(MD_Down)
@@ -44,23 +19,24 @@ func OnInitBetweenFloors() {
 func SetLights(elev ElevState) {
 	for floor := 0; floor < NumFloors; floor++ {
 		for btn := 0; btn < NumButtons-1; btn++ {
-			if elev.Requests[floor][btn] {
-				fmt.Println(true)
-			}
+
 			SetButtonLamp(ButtonType(btn), floor, elev.Requests[floor][btn]) //requests == 0/1 is this false/true?
 		}
 	}
 }
 
-func OnRequestButtonPress(btnFloor int, btnType ButtonType) {
+func OnRequestButtonPress(btnFloor int, btnType ButtonType, timer *time.Timer) {
 
-	Timer.Reset(3*time.Second)
-
+	//timer.Reset(3 * time.Second)
+	fmt.Println("adding to my requests")
 	switch Elevator.Behaviour {
 	case EBdoorOpen:
 		if Elevator.Floor == btnFloor {
-			TimerDoor() //start timer for door
-			OnFloorTimeOut()
+			fmt.Println("RESET O")
+			timer.Reset(3 * time.Second) //TimerDoor() //start timer for door
+			//så slette ordren?
+			Elevator = RequestClearAtCurrentFloor(Elevator)
+			//OnFloorTimeOut()
 
 		} else {
 			Elevator.Requests[btnFloor][btnType] = true
@@ -70,9 +46,10 @@ func OnRequestButtonPress(btnFloor int, btnType ButtonType) {
 	case EBidle:
 		if Elevator.Floor == btnFloor {
 			SetDoorOpenLamp(true)
-			TimerDoor() //timer start
+			fmt.Println("RESET I")
+			timer.Reset(3 * time.Second) //TimerDoor() //timer start
 			Elevator.Behaviour = EBdoorOpen
-			OnFloorTimeOut()
+			//OnFloorTimeOut()
 		} else {
 			Elevator.Requests[btnFloor][btnType] = true
 			Elevator.Dir = RequestChooseDirection(Elevator)
@@ -86,15 +63,12 @@ func OnRequestButtonPress(btnFloor int, btnType ButtonType) {
 	//can print the state of elevator for debugg process
 }
 
-func OnFloorArrival(newFloor int, id string) {
+func OnFloorArrival(newFloor int, id string, timer *time.Timer) {
 	//can print the new floor and the state of elevator
 	Id, _ := strconv.Atoi(id)
 
 	Elevator.Floor = newFloor
 	SetFloorIndicator(Elevator.Floor)
-
-	Timer.Reset(3*time.Second)
-	fmt.Println("timer reset")
 
 	switch Elevator.Behaviour {
 	case EBmoving:
@@ -102,14 +76,13 @@ func OnFloorArrival(newFloor int, id string) {
 			SetMotorDirection(MD_Stop)
 			fmt.Println("set open door lamp")
 			SetDoorOpenLamp(true)
-			
+
 			Elevator = RequestClearAtCurrentFloor(Elevator)
-			ElevStateArray[Id] = Elevator
+			ElevStateArray[Id] = Elevator //vet ikke om denne er nødvendig
 
-
-			SyncAllLights(ElevStateArray, id)
-
-			TimerDoor() //start timer for door
+			//SyncAllLights(ElevStateArray, id)
+			fmt.Println("RESET M")
+			timer.Reset(3 * time.Second) //TimerDoor() //start timer for door
 			//SetLights(Elevator) vet ikke om det går fint at den er med her eller ikke
 			Elevator.Behaviour = EBdoorOpen
 		}
@@ -119,11 +92,12 @@ func OnFloorArrival(newFloor int, id string) {
 
 func OnFloorTimeOut() {
 	//can print elevator state and function
-
+	fmt.Println("IN ON FLOOR TIME OUT")
 	switch Elevator.Behaviour {
 	case EBdoorOpen:
-		fmt.Println("in case open")
+
 		Elevator.Dir = RequestChooseDirection(Elevator)
+		fmt.Println("Close door")
 		SetDoorOpenLamp(false)
 		SetMotorDirection(Elevator.Dir)
 		if Elevator.Dir == MD_Stop {
