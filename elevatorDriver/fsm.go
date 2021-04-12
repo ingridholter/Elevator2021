@@ -4,15 +4,15 @@ import (
 	"fmt"
 	. "main/config"
 	. "main/elevio"
-
+	"sync"
 	//. "main/lights"
-	"strconv"
 	"time"
 )
 
 func OnInitBetweenFloors() {
-	SetMotorDirection(MD_Down)
+	fmt.Println("drive down")
 	Elevator.Dir = MD_Down
+	SetMotorDirection(Elevator.Dir)
 	Elevator.Behaviour = EBmoving
 }
 
@@ -63,7 +63,7 @@ func OnRequestButtonPress(btnFloor int, btnType ButtonType, timer *time.Timer) {
 
 func OnFloorArrival(newFloor int, id string, timer *time.Timer) {
 	//can print the new floor and the state of elevator
-	Id, _ := strconv.Atoi(id)
+	//Id, _ := strconv.Atoi(id)
 
 	Elevator.Floor = newFloor
 	SetFloorIndicator(Elevator.Floor)
@@ -77,7 +77,7 @@ func OnFloorArrival(newFloor int, id string, timer *time.Timer) {
 			SetDoorOpenLamp(true)
 
 			Elevator = RequestClearAtCurrentFloor(Elevator)
-			ElevStateArray[Id] = Elevator //vet ikke om denne er nødvendig
+			//ElevStateArray[Id] = Elevator //vet ikke om denne er nødvendig
 
 			//SyncAllLights(ElevStateArray, id)
 			fmt.Println("RESET M")
@@ -89,7 +89,7 @@ func OnFloorArrival(newFloor int, id string, timer *time.Timer) {
 	//can print state
 }
 
-func OnDoorTimeOut() {
+func OnDoorTimeOut(m *sync.Mutex) {
 	//can print elevator state and function
 	fmt.Println("IN ON FLOOR TIME OUT")
 	switch Elevator.Behaviour {
@@ -100,6 +100,7 @@ func OnDoorTimeOut() {
 		SetDoorOpenLamp(false)
 		SetMotorDirection(Elevator.Dir)
 		if Elevator.Dir == MD_Stop {
+
 			Elevator.Behaviour = EBidle
 		} else {
 			Elevator.Behaviour = EBmoving

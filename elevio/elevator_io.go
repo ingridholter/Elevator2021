@@ -33,14 +33,12 @@ func Init(addr string, numFloors int) {
 		panic(err.Error())
 	}
 	_initialized = true
-	
+	fmt.Println("floor: ", getFloor())
 	if getFloor() == -1 {
 		Between = true
-		fmt.Println("in if")
 	}else{
 		
 		Elevator.Behaviour = EBidle
-		fmt.Println("in else")
 		for index := range ElevStateArray {
 		ElevStateArray[index] = ElevState{
 			Floor:     -1,

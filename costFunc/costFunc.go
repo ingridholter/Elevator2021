@@ -5,6 +5,7 @@ import (
 	. "main/config"
 	. "main/elevatorDriver"
 	"strconv"
+	"sync"
 )
 
 //Får inn alle states fra elevator observer
@@ -18,6 +19,7 @@ func bestElevator(eOld [NumElevators]ElevState) int {
 		if eOld[elevNum].Floor == -2 {
 			CostMap[elevNum] = 99999999 //infinity
 		} else {
+			fmt.Println("elevatorNumber: ",elevNum)
 			CostMap[elevNum] = timeToIdle(eOld[elevNum])
 		}
 	}
@@ -84,11 +86,13 @@ func timeToIdle(eOld ElevState) int {
 	case EBmoving:
 		duration += TRAVELTIME / 2
 		e.Floor += int(e.Dir)
+		fmt.Println("duration: ", duration)
 	case EBdoorOpen:
 		duration -= DOOROPENTIME / 2
 	}
 
 	for {
+		fmt.Println("elevator: ", e)
 		if RequestShouldStop(e) {
 			e = SimualtionRequestClearAtCurrentFloor(e)
 
@@ -104,7 +108,7 @@ func timeToIdle(eOld ElevState) int {
 }
 
 //send msg to the id that should take the order
-func NewOrderDistributer(eOld [NumElevators]ElevState, btnType ButtonType, f int, id string, elevator ElevState) NewOrderMsg {
+func NewOrderDistributer(eOld [NumElevators]ElevState, btnType ButtonType, f int, id string, elevator ElevState, m *sync.Mutex) NewOrderMsg{
 
 	//min id
 	Id, _ := strconv.Atoi(id)
@@ -113,13 +117,26 @@ func NewOrderDistributer(eOld [NumElevators]ElevState, btnType ButtonType, f int
 
 	b := ButtonEvent{Button: btnType, Floor: f}
 
+	if ElevStateArray[bestElevatorId].Requests[f][btnType]{
+		
+		//da har vi ordren fra før
+		msgNoOne := NewOrderMsg{
+			SenderId:   id,
+			RecieverId: "duplicate",
+			Button:     b,
+		}
+		return  msgNoOne
+	}
+
 	//makes sure that cab orders are taken by owners
 	if bestElevatorId == Id || btnType == 2 {
 
 		//oppdatere egen request matrise og elevstatearray
 		elevator.Requests[f][btnType] = true
+		m.Lock()
 		ElevStateArray[Id].Requests[f][btnType] = true
-
+		m.Unlock()
+		
 		//send mld til meg seg
 		msgMe := NewOrderMsg{
 			SenderId:   id,
@@ -134,6 +151,6 @@ func NewOrderDistributer(eOld [NumElevators]ElevState, btnType ButtonType, f int
 		RecieverId: strconv.Itoa(bestElevatorId),
 		Button:     b,
 	}
-
+	
 	return msg
 }

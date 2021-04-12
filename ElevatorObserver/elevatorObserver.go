@@ -4,7 +4,7 @@ package ElevatorObserver
 
 import (
 	"time"
-
+	"sync"
 	"fmt"
 	. "main/config"
 	. "main/costFunc"
@@ -69,12 +69,14 @@ func SyncAllLights(allElevators [NumElevators]ElevState, id string) {
 	}
 }
 
-func UpdateElevStateArray(msg ElevStateMsg) {
+func UpdateElevStateArray(msg ElevStateMsg,m *sync.Mutex) {
 	//fmt.Println("update Elev state array: ", msg.Elevator.Requests)
 
 	id, _ := strconv.Atoi(msg.SenderId)
-
+	
+	m.Lock()
 	ElevStateArray[id] = msg.Elevator
+	m.Unlock()
 }
 
 func elevatorActive(id int, peers []string) bool {
@@ -88,7 +90,7 @@ func elevatorActive(id int, peers []string) bool {
 }
 
 //oppdatere elevStateArray slik at de peers som ikke er på nettverket har floor=-1 og ingen requests, tar inn p.Peers
-func ActiveElevatorStates(peers []string) {
+func ActiveElevatorStates(peers []string,m *sync.Mutex) {
 
 	var ActiveElevatorStates [NumElevators]ElevState
 
@@ -103,7 +105,9 @@ func ActiveElevatorStates(peers []string) {
 			ActiveElevatorStates[i].Floor = err
 		}
 	}
+	m.Lock()
 	ElevStateArray = ActiveElevatorStates
+	m.Unlock()
 }
 
 func AnyRequestsExist(elevator ElevState) bool{
@@ -119,52 +123,76 @@ func AnyRequestsExist(elevator ElevState) bool{
 }
 
 
-func TimerElevatorLost(msg ElevStateMsg,id string){
+func TimerElevatorLost(msg chan ElevStateMsg,id string,LostId chan<- int,m *sync.Mutex, m2 *sync.Mutex){
 	//Id, _ := strconv.Atoi(id)
-	SenderIdInt,_:=strconv.Atoi(msg.SenderId)
+	var newMsg ElevStateMsg
+	for{
+		
+		select{
+		case r:= <- msg:
+			m.Lock()
+			newMsg= r
+			m.Unlock()
+		}
+		
+		SenderIdInt,_:=strconv.Atoi(newMsg.SenderId)
+		newElevState:=newMsg.Elevator
 
-	oldElevState := ElevStateArray[SenderIdInt]
-	newElevState := msg.Elevator
+		m2.Lock()
+		oldElevState := ElevStateArray[SenderIdInt]
+		m2.Unlock()
 
-	//fmt.Println("any requests? ",AnyRequestsExist(oldElevState))
+		//fmt.Println("senderid: ", SenderIdInt)
+		//fmt.Println("any requests? ",AnyRequestsExist(oldElevState))
 
-	//fmt.Println("old: ",oldElevState)
-	//fmt.Println("new: ",newElevState)
+		//fmt.Println("old: ",oldElevState)
+		//fmt.Println("new: ",newElevState)
+		if oldElevState.Floor != newElevState.Floor ||  oldElevState.Dir != newElevState.Dir || oldElevState.Behaviour != newElevState.Behaviour{
+			//fmt.Println("Resetting timer")
+			ElevatorLastMoved[SenderIdInt]=time.Now()
+		}
+		if !AnyRequestsExist(oldElevState){
+			//fmt.Println(SenderIdInt,"dont have requests, resetting timer")
+			ElevatorLastMoved[SenderIdInt]=time.Now()
+		}
 
-	if oldElevState.Floor != newElevState.Floor ||  oldElevState.Dir != newElevState.Dir || oldElevState.Behaviour != newElevState.Behaviour{
-		//fmt.Println("Resetting timer")
-		ElevatorLastMoved[SenderIdInt].Reset(5*time.Second)
-	}else if !AnyRequestsExist(oldElevState){
-		//fmt.Println("dont have requests, resetting timer")
-		ElevatorLastMoved[SenderIdInt].Reset(5*time.Second)
+		if int(time.Now().Second())-int(ElevatorLastMoved[SenderIdInt].Second())>7 && AnyRequestsExist(oldElevState){
+			LostId <- SenderIdInt
+		}
+
+		time.Sleep(100*time.Millisecond)
 	}
-	
 }
 
-
+/*
 func IdElevatorLost(LostId chan<- int){
 
 	for{
+		fmt.Println("in idElevatorLost")
 	for i:= range ElevatorLastMoved{
 		a :=ElevatorLastMoved[i]
-	
+		fmt.Println("time since last moved: ",a)
+		
 		select{
 			case <-a.C:
 				LostId <- i
 			}
 		}
+		time.Sleep(100*time.Millisecond)
 	}
 }
-
+*/
 
 //redistrubuere ordrene til en tapt heis. OBS IKKE CAB ORDERS!!
-func DistibuteLostOrders(LostId int, lostOrders chan<- NewOrderMsg) {
+func DistibuteLostOrders(LostId int, m *sync.Mutex,lostOrders chan<- NewOrderMsg) {
 
 	//lagrer lost id sine request i ny matrise
 	LostRequests:= ElevStateArray[LostId].Requests
 
 	//oppdate elevarray til at den er død
+	m.Lock()
 	ElevStateArray[LostId].Floor =  -2
+	m.Unlock()
 
 	//slette ordrene til den heisen?
 
@@ -172,7 +200,7 @@ func DistibuteLostOrders(LostId int, lostOrders chan<- NewOrderMsg) {
 	for floor := 0; floor < NumFloors; floor++ {
 		for btn := 0; btn < NumButtons; btn++ {
 			if LostRequests[floor][btn] {
-				msg := NewOrderDistributer(ElevStateArray, ButtonType(btn), floor, strconv.Itoa(LostId), ElevStateArray[LostId])
+				msg:=NewOrderDistributer(ElevStateArray, ButtonType(btn), floor, strconv.Itoa(LostId), ElevStateArray[LostId],m)
 				lostOrders <- msg
 			}
 		}

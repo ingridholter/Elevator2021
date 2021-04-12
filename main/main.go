@@ -18,6 +18,8 @@ import (
 func main() {
 	var _mtx sync.Mutex
 	var _mtx2 sync.Mutex
+	var _mtx3 sync.Mutex
+	var _mtx4 sync.Mutex
 
 	var id string
 	flag.StringVar(&id, "id", "", "id of this peer")
@@ -63,8 +65,7 @@ func main() {
 	numFloors := 4
 	Init(simport, numFloors)
 	fmt.Println("init state: ",Elevator.Behaviour)
-	var d MotorDirection = MD_Up //trenger denne?
-
+	
 	drv_buttons := make(chan ButtonEvent)
 	drv_floors := make(chan int)
 	drv_obstr := make(chan bool)
@@ -74,7 +75,7 @@ func main() {
 	go PollObstructionSwitch(drv_obstr)
 	go PollStopButton(drv_stop)
 
-	chan_timer := make(chan bool, 1)
+	chan_timer := make(chan bool,1)
 	go Timer(chan_timer)
 
 	Timer := time.NewTimer(2 * time.Second)
@@ -82,30 +83,33 @@ func main() {
 
 	
 	for i:= range ElevatorLastMoved{
-		ElevatorLastMoved[i] =  time.NewTimer(7 * time.Second)
+		ElevatorLastMoved[i] =  time.Now()
 	}
-	
-	lostId := make(chan int)
-	go IdElevatorLost(lostId)
-
 
 	
+	obstr_done := make(chan bool)
 	lostOrders := make(chan NewOrderMsg)
 	//go DistibuteLostOrders(id,powerloss)
 
 	//drive down if between floors
-	if Between {
-		fmt.Println("on init between floors")
-		OnInitBetweenFloors()
-	}
+	
 
 	elevstate := ElevStateMsg{
 		SenderId: id,
 		Message:  "State Update",
 		Elevator: Elevator,
 	}
+	lostId := make(chan int) //only one id lost a time
+	//go IdElevatorLost(lostId)
 
+	newestElevStateMsg := make(chan ElevStateMsg)
+
+	go TimerElevatorLost(newestElevStateMsg,id,lostId,&_mtx3,&_mtx4)
 	
+	if Between {
+		fmt.Println("on init between floors")
+		OnInitBetweenFloors()
+	}
 	//send my state every 1 seconds, (could be to slow)
 	
 	go func() {
@@ -138,13 +142,16 @@ func main() {
 
 			//i en annen case: ta new sin cab order kolonne og or'e med lagret cab orders
 
-			ActiveElevatorStates(p.Peers)
+			ActiveElevatorStates(p.Peers,&_mtx4)
 			//fmt.Println("update active e: ", ElevStateArray)
+			
 		case l := <- lostOrders:
 			//update active elevators
-
+				_mtx2.Lock() 
+				NewOrderMsgTx <- l
+				_mtx2.Unlock()
 			//redistribuere alle ordre
-
+/*
 			//sende disse til de som skal ha dem
 			go func() {
 				//send newOrder message for 2 seconds then stop.
@@ -160,14 +167,14 @@ func main() {
 					time.Sleep(100 * time.Millisecond)
 				}
 			}()
-
+*/
 		case r := <-ElevStateMsgRx:
-			//fmt.Println("Received msg: ", r.Elevator.Behaviour)
-			
-		
-			TimerElevatorLost(r,id)
+			fmt.Println("new msg from", r.SenderId)
+			_mtx3.Lock()
+			newestElevStateMsg <- r
+			_mtx3.Unlock()
 
-			UpdateElevStateArray(r)
+			UpdateElevStateArray(r,&_mtx4)
 			
 			SyncAllLights(ElevStateArray, id)
 			
@@ -175,8 +182,9 @@ func main() {
 		case b := <-drv_buttons:
 			fmt.Printf("%+v\n", b)
 
-			msg := NewOrderDistributer(ElevStateArray, b.Button, b.Floor, id, Elevator) //ny mld med hvem som skal ha ordre!
-
+			msg := NewOrderDistributer(ElevStateArray, b.Button, b.Floor, id, Elevator,&_mtx4) //ny mld med hvem som skal ha ordre!
+			NewOrderMsgTx <- msg
+			/*
 			go func() {
 				//send newOrder message for 2 seconds then stop.
 				for timeout := time.After(1 * time.Second); ; {
@@ -191,9 +199,10 @@ func main() {
 					time.Sleep(100 * time.Millisecond)
 				}
 			}()
+			*/
 
 		case m := <-NewOrderMsgRx:
-			//fmt.Println("new order recieved: ", m)
+			fmt.Println("new order recieved: ", m)
 
 			if AcceptNewOrder(m, id, Elevator) { //is the new order for this elevator?
 				SyncAllLights(ElevStateArray, id)
@@ -226,19 +235,32 @@ func main() {
 		
 
 		case a := <-drv_obstr:
-			fmt.Printf("%+v\n", a)
-			if a {
-				SetMotorDirection(MD_Stop)
-			} else {
-				SetMotorDirection(d)
+			fmt.Printf("obstuction!!!! %+v\n", a)
+			go func(){
+			for{
+				if  a && Elevator.Behaviour==EBdoorOpen{
+					Timer.Reset(3*time.Second)
+					Timer.Stop()
+				}
+				if !a{
+					
+					obstr_done<-true
+					return
+				}
+				time.Sleep(10*time.Millisecond)
 			}
+		}()
+			
+
 		case <-Timer.C:
+			OnDoorTimeOut()
+		case <-obstr_done:
 			OnDoorTimeOut()
 
 		case id:= <-lostId:
 			//alarm
 			fmt.Println("in lostId: ", id)
-			DistibuteLostOrders(id, lostOrders)
+			DistibuteLostOrders(id,&_mtx4,NewOrderMsgTx)
 
 		case a := <-drv_stop:
 			fmt.Printf("%+v\n", a)

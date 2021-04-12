@@ -2,13 +2,12 @@ package elevatorDriver
 
 import (
 	. "main/config"
-	"fmt"
 )
 
 func RequestsAbove(elev ElevState) bool {
 	for f := elev.Floor + 1; f < NumFloors; f++ {
 		for btn := 0; btn < NumButtons; btn++ {
-			fmt.Println("Requests above: ", elev.Requests[f][btn])
+			
 			if elev.Requests[f][btn] {
 				return true
 			}
@@ -20,7 +19,7 @@ func RequestsAbove(elev ElevState) bool {
 func RequestsBelow(elev ElevState) bool {
 	for f := 0; f < elev.Floor; f++ {
 		for btn := 0; btn < NumButtons; btn++ {
-			fmt.Println("Requests below: ", elev.Requests[f][btn])
+			
 			if elev.Requests[f][btn] {
 				return true
 			}
@@ -73,7 +72,6 @@ func RequestShouldStop(elev ElevState) bool {
 		return (elev.Requests[elev.Floor][BT_HallDown] || elev.Requests[elev.Floor][BT_Cab] || !RequestsBelow(elev))
 
 	case MD_Up:
-		fmt.Println("case MD_UP: ", (elev.Requests[elev.Floor][BT_HallUp] || elev.Requests[elev.Floor][BT_Cab] || !RequestsAbove(elev)))
 		return (elev.Requests[elev.Floor][BT_HallUp] || elev.Requests[elev.Floor][BT_Cab] || !RequestsAbove(elev))
 
 	case MD_Stop: //do nothing?

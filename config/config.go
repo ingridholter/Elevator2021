@@ -17,7 +17,8 @@ var Elevator ElevState //elevator state variable
 var AllRequests [NumFloors][NumButtons * NumElevators]bool
 var ElevStateArray [NumElevators]ElevState
 
-var ElevatorLastMoved [NumElevators]*time.Timer
+var  ElevatorLastMoved = make(map[int]time.Time)
+//var ElevatorLastMoved [NumElevators]*time.Timer
 
 type ButtonType int
 
