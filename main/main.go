@@ -81,13 +81,14 @@ func main() {
 	Timer := time.NewTimer(2 * time.Second)
 	Timer.Stop()
 
+	SendStateTicker := time.NewTicker(1*time.Second)
+
 	
 	for i:= range ElevatorLastMoved{
 		ElevatorLastMoved[i] =  time.Now()
 	}
 
 	
-	obstr_done := make(chan bool)
 	lostOrders := make(chan NewOrderMsg)
 	//go DistibuteLostOrders(id,powerloss)
 
@@ -102,16 +103,16 @@ func main() {
 	lostId := make(chan int) //only one id lost a time
 	//go IdElevatorLost(lostId)
 
-	newestElevStateMsg := make(chan ElevStateMsg)
+	//newestElevStateMsg := make(chan ElevStateMsg)
 
-	go TimerElevatorLost(newestElevStateMsg,id,lostId,&_mtx3,&_mtx4)
+	
 	
 	if Between {
 		fmt.Println("on init between floors")
 		OnInitBetweenFloors()
 	}
-	//send my state every 1 seconds, (could be to slow)
 	
+	/*
 	go func() {
 		for {
 			_mtx.Lock()
@@ -122,11 +123,17 @@ func main() {
 		}
 		
 	}()
-	
+	*/
 
 	for {
-
 		select {
+		
+		case <-SendStateTicker.C:
+			//send my state every 1 seconds
+			_mtx.Lock()
+			ElevStateMsgTx <- elevstate
+			_mtx.Unlock()
+
 		case p := <-peerUpdateCh:
 
 			fmt.Printf("Peer update:\n")
@@ -169,10 +176,10 @@ func main() {
 			}()
 */
 		case r := <-ElevStateMsgRx:
-			fmt.Println("new msg from", r.SenderId)
-			_mtx3.Lock()
-			newestElevStateMsg <- r
-			_mtx3.Unlock()
+			//fmt.Println("new msg from", r.SenderId)
+
+			
+			TimerElevatorLost(r,id,lostId,&_mtx3,&_mtx4)
 
 			UpdateElevStateArray(r,&_mtx4)
 			
@@ -235,42 +242,44 @@ func main() {
 		
 
 		case a := <-drv_obstr:
-			fmt.Printf("obstuction!!!! %+v\n", a)
-			go func(){
-			for{
-				if  a && Elevator.Behaviour==EBdoorOpen{
-					Timer.Reset(3*time.Second)
-					Timer.Stop()
-				}
-				if !a{
-					
-					obstr_done<-true
-					return
-				}
-				time.Sleep(10*time.Millisecond)
+			fmt.Printf("Obstuction! %+v\n", a)
+			if a && Elevator.Behaviour==EBdoorOpen{
+				Timer.Reset(3*time.Second)
+				Timer.Stop()
 			}
-		}()
-			
 
+			if !a{
+				Timer.Stop()
+				OnDoorTimeOut()
+			}
+			
 		case <-Timer.C:
-			OnDoorTimeOut()
-		case <-obstr_done:
 			OnDoorTimeOut()
 
 		case id:= <-lostId:
 			//alarm
-			fmt.Println("in lostId: ", id)
+			fmt.Println("In lostId: ", id)
 			DistibuteLostOrders(id,&_mtx4,NewOrderMsgTx)
 
 		case a := <-drv_stop:
-			fmt.Printf("%+v\n", a)
-			for f := 0; f < numFloors; f++ {
-				for b := ButtonType(0); b < 3; b++ {
+			fmt.Printf("stop button: %+v\n", a)
+			SetStopLamp(true)
+			for a{
+				for f := 0; f < numFloors; f++ {
+					for b := ButtonType(0); b < 3; b++ {
 					SetButtonLamp(b, f, false)
+					}				
 				}
+				time.Sleep(500*time.Millisecond)
+				for f := 0; f < numFloors; f++ {
+					for b := ButtonType(0); b < 3; b++ {
+					SetButtonLamp(b, f, true)
+
+					}
+				}
+				time.Sleep(500*time.Millisecond)
 			}
 		}
-
 	}
 
 }
