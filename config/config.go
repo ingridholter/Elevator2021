@@ -1,20 +1,10 @@
 package config
 
-import (
-	"time"
-)
-
 const (
 	NumElevators     = 3
 	NumFloors    int = 4
 	NumButtons   int = 3
 )
-
-var Elevator ElevState //elevator state variable
-
-var ElevStateArray [NumElevators]ElevState
-
-var ElevatorLastMoved = make(map[int]time.Time)
 
 type ButtonType int
 

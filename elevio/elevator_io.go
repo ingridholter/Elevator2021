@@ -36,25 +36,7 @@ func Init(addr string, numFloors int) {
 	fmt.Println("floor: ", GetFloor())
 	if GetFloor() == -1 {
 		Between = true
-	}else{
-		
-		Elevator.Behaviour = EBidle
-		for index := range ElevStateArray {
-		ElevStateArray[index] = ElevState{
-			Floor:     -1,
-			Dir:       MD_Stop,
-			Behaviour: EBidle,
-			Requests: [4][3]bool{
-				{false, false, false},
-				{false, false, false},
-				{false, false, false},
-				{false, false, false},
-			},
-		}
-		//fmt.Println("setting lights in elevatorObs")
 	}
-}
-
 }
 
 func SetMotorDirection(dir MotorDirection) {

@@ -4,15 +4,17 @@ import (
 	"fmt"
 	. "main/config"
 	. "main/elevio"
+
 	//. "main/lights"
 	"time"
 )
 
-func OnInitBetweenFloors() {
+func OnInitBetweenFloors(elevator ElevState, chanElevator chan ElevState) {
 	fmt.Println("drive down")
-	Elevator.Dir = MD_Down
-	SetMotorDirection(Elevator.Dir)
-	Elevator.Behaviour = EBmoving
+	elevator.Dir = MD_Down
+	SetMotorDirection(elevator.Dir)
+	elevator.Behaviour = EBmoving
+	chanElevator <- elevator
 }
 
 func SetLights(elev ElevState) {
@@ -34,7 +36,6 @@ func OnRequestButtonPress(elevator ElevState, btnFloor int, btnType ButtonType, 
 			timer.Reset(2 * time.Second)
 			//så slette ordren?
 			elevator = RequestClearAtCurrentFloor(elevator)
-		
 
 		} else {
 			elevator.Requests[btnFloor][btnType] = true
@@ -47,7 +48,7 @@ func OnRequestButtonPress(elevator ElevState, btnFloor int, btnType ButtonType, 
 			fmt.Println("RESET I")
 			timer.Reset(2 * time.Second) //TimerDoor() //timer start
 			elevator.Behaviour = EBdoorOpen
-			
+
 		} else {
 			elevator.Requests[btnFloor][btnType] = true
 			elevator.Dir = RequestChooseDirection(elevator)
@@ -58,13 +59,13 @@ func OnRequestButtonPress(elevator ElevState, btnFloor int, btnType ButtonType, 
 	chanElevator <- elevator
 }
 
-func OnFloorArrival(elevator ElevState,newFloor int, id string, timer *time.Timer,chanElevator chan ElevState) {
+func OnFloorArrival(elevator ElevState, newFloor int, id string, timer *time.Timer, chanElevator chan ElevState) {
 	//can print the new floor and the state of elevator
 	//Id, _ := strconv.Atoi(id)
 
 	elevator.Floor = newFloor
 	SetFloorIndicator(elevator.Floor)
-	fmt.Println("state:",elevator.Behaviour)
+	fmt.Println("state:", elevator.Behaviour)
 
 	switch elevator.Behaviour {
 	case EBmoving:
@@ -74,17 +75,19 @@ func OnFloorArrival(elevator ElevState,newFloor int, id string, timer *time.Time
 			SetDoorOpenLamp(true)
 
 			elevator = RequestClearAtCurrentFloor(elevator)
-			
+
 			fmt.Println("RESET M")
 			timer.Reset(2 * time.Second) //start timer for door
-			
+
 			elevator.Behaviour = EBdoorOpen
 		}
 	}
+
 	chanElevator <- elevator
+
 }
 
-func OnDoorTimeOut(elevator ElevState,chanElevator chan ElevState) {
+func OnDoorTimeOut(elevator ElevState, chanElevator chan ElevState) {
 	//can print elevator state and function
 	fmt.Println("IN ON FLOOR TIME OUT")
 	switch elevator.Behaviour {
@@ -102,4 +105,5 @@ func OnDoorTimeOut(elevator ElevState,chanElevator chan ElevState) {
 		}
 	}
 	chanElevator <- elevator
+	fmt.Println("going out of on door time out")
 }

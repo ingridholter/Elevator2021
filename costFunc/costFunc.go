@@ -5,7 +5,6 @@ import (
 	. "main/config"
 	. "main/elevatorDriver"
 	"strconv"
-	
 )
 
 //Får inn alle states fra elevator observer
@@ -19,7 +18,7 @@ func bestElevator(eOld [NumElevators]ElevState) int {
 		if eOld[elevNum].Floor == -2 {
 			CostMap[elevNum] = 99999999 //infinity
 		} else {
-			fmt.Println("elevatorNumber: ",elevNum)
+			fmt.Println("elevatorNumber: ", elevNum)
 			CostMap[elevNum] = timeToIdle(eOld[elevNum])
 		}
 	}
@@ -34,9 +33,9 @@ func bestElevator(eOld [NumElevators]ElevState) int {
 	}
 	fmt.Println(CostMap)
 	for key, value := range CostMap {
-		fmt.Println("key ", key, "value ",value)
+		fmt.Println("key ", key, "value ", value)
 		if value == minTime {
-			fmt.Println("key: ",key)
+			fmt.Println("key: ", key)
 			return key
 		}
 
@@ -46,7 +45,7 @@ func bestElevator(eOld [NumElevators]ElevState) int {
 }
 
 //simualte clearing orders
-func SimualtionRequestClearAtCurrentFloor(eOld ElevState) ElevState{
+func SimualtionRequestClearAtCurrentFloor(eOld ElevState) ElevState {
 	elev := eOld
 	elev.Requests[elev.Floor][BT_Cab] = false
 	switch elev.Dir {
@@ -76,7 +75,7 @@ func timeToIdle(eOld ElevState) int {
 	const DOOROPENTIME = 3000 //hva skal door open time være?
 
 	var duration int = 0
-	fmt.Println("behaviour: ",e.Behaviour)
+	fmt.Println("behaviour: ", e.Behaviour)
 	switch e.Behaviour {
 	case EBidle:
 		e.Dir = RequestChooseDirection(e)
@@ -107,25 +106,23 @@ func timeToIdle(eOld ElevState) int {
 	}
 }
 
-
-
-func checkDuplicate(allElevators [NumElevators]ElevState,button ButtonEvent) bool{
+func checkDuplicate(Id int, allElevators [NumElevators]ElevState, button ButtonEvent) bool {
 
 	temp := false
 	for _, elevator := range allElevators {
-		if elevator.Floor != -2 {	
-			temp = temp || elevator.Requests[button.Floor][button.Button]
+		if elevator.Floor != -2 {
+			if button.Button != BT_Cab {
+				temp = temp || elevator.Requests[button.Floor][button.Button]
+			} else {
+				return allElevators[Id].Requests[button.Floor][BT_Cab]
+			}
 		}
 	}
 	return temp
 }
 
-
-
-
-
 //send msg to the id that should take the order
-func NewOrderDistributer(eOld [NumElevators]ElevState, btnType ButtonType, f int, id string) NewOrderMsg{
+func NewOrderDistributer(eOld [NumElevators]ElevState, btnType ButtonType, f int, id string) NewOrderMsg {
 
 	//min id
 	Id, _ := strconv.Atoi(id)
@@ -134,16 +131,15 @@ func NewOrderDistributer(eOld [NumElevators]ElevState, btnType ButtonType, f int
 
 	b := ButtonEvent{Button: btnType, Floor: f}
 
-	
-	if checkDuplicate(eOld,b){
-		
+	if checkDuplicate(Id, eOld, b) {
+
 		//da har vi ordren fra før
 		msgNoOne := NewOrderMsg{
 			SenderId:   id,
 			RecieverId: "duplicate",
 			Button:     b,
 		}
-		return  msgNoOne
+		return msgNoOne
 	}
 
 	//makes sure that cab orders are taken by owners
@@ -153,8 +149,7 @@ func NewOrderDistributer(eOld [NumElevators]ElevState, btnType ButtonType, f int
 
 		//elevator.Requests[f][btnType] = true
 		//ElevStateArray[Id].Requests[f][btnType] = true
-		
-		
+
 		//send mld til meg seg
 		msgMe := NewOrderMsg{
 			SenderId:   id,
@@ -169,6 +164,6 @@ func NewOrderDistributer(eOld [NumElevators]ElevState, btnType ButtonType, f int
 		RecieverId: strconv.Itoa(bestElevatorId),
 		Button:     b,
 	}
-	
+
 	return msg
 }
