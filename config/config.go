@@ -1,11 +1,10 @@
 package config
 
-import(
+import (
 	"time"
 )
 
 const (
-	PeerId           = 0 //change for different computers? not here changed in main.
 	NumElevators     = 3
 	NumFloors    int = 4
 	NumButtons   int = 3
@@ -13,12 +12,9 @@ const (
 
 var Elevator ElevState //elevator state variable
 
-//var ActiveElevators = 3 //len(peers)
-var AllRequests [NumFloors][NumButtons * NumElevators]bool
 var ElevStateArray [NumElevators]ElevState
 
-var  ElevatorLastMoved = make(map[int]time.Time)
-//var ElevatorLastMoved [NumElevators]*time.Timer
+var ElevatorLastMoved = make(map[int]time.Time)
 
 type ButtonType int
 
@@ -68,5 +64,3 @@ type ElevStateMsg struct {
 	Message  string
 	Elevator ElevState
 }
-
-

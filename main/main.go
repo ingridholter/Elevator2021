@@ -1,26 +1,18 @@
 package main
 
 import (
-	"sync"
 	"flag"
 	"fmt"
 	. "main/ElevatorObserver"
 	"main/Network/bcast"
 	"main/Network/peers"
 	. "main/config"
-	. "main/costFunc"
 	. "main/elevatorDriver"
 	. "main/elevio"
 	"os"
-	"time"
 )
 
 func main() {
-	var _mtx sync.Mutex
-	var _mtx2 sync.Mutex
-	var _mtx3 sync.Mutex
-	var _mtx4 sync.Mutex
-
 	var id string
 	flag.StringVar(&id, "id", "", "id of this peer")
 
@@ -66,45 +58,19 @@ func main() {
 	Init(simport, numFloors)
 	fmt.Println("init state: ",Elevator.Behaviour)
 	
-	drv_buttons := make(chan ButtonEvent)
-	drv_floors := make(chan int)
-	drv_obstr := make(chan bool)
-	drv_stop := make(chan bool)
-	go PollButtons(drv_buttons)
-	go PollFloorSensor(drv_floors)
-	go PollObstructionSwitch(drv_obstr)
-	go PollStopButton(drv_stop)
+	drvButtons := make(chan ButtonEvent)
+	drvFloors := make(chan int)
+	drvObstr := make(chan bool)
+	drvStop := make(chan bool)
+	go PollButtons(drvButtons)
+	go PollFloorSensor(drvFloors)
+	go PollObstructionSwitch(drvObstr)
+	go PollStopButton(drvStop)
 
-	chan_timer := make(chan bool,1)
-	go Timer(chan_timer)
-
-	Timer := time.NewTimer(2 * time.Second)
-	Timer.Stop()
-
-	SendStateTicker := time.NewTicker(1*time.Second)
-
-	
-	for i:= range ElevatorLastMoved{
-		ElevatorLastMoved[i] =  time.Now()
-	}
-
-	
-	lostOrders := make(chan NewOrderMsg)
-	//go DistibuteLostOrders(id,powerloss)
-
-	//drive down if between floors
-	
-
-	elevstate := ElevStateMsg{
-		SenderId: id,
-		Message:  "State Update",
-		Elevator: Elevator,
-	}
+	chanNewOrder := make(chan ButtonEvent)
+	chanElevator := make(chan ElevState,1)
+	chanElevatorArray:= make(chan [NumElevators]ElevState,1)
 	lostId := make(chan int) //only one id lost a time
-	//go IdElevatorLost(lostId)
-
-	//newestElevStateMsg := make(chan ElevStateMsg)
-
 	
 	
 	if Between {
@@ -112,27 +78,42 @@ func main() {
 		OnInitBetweenFloors()
 	}
 	
-	/*
-	go func() {
-		for {
-			_mtx.Lock()
-			ElevStateMsgTx <- elevstate
-			_mtx.Unlock()
-			time.Sleep(1 * time.Second)
-		
-		}
-		
-	}()
-	*/
+	go ElevatorObserver(id,ElevStateMsgRx,drvButtons,NewOrderMsgRx, NewOrderMsgTx,chanNewOrder,chanElevator,chanElevatorArray,ElevStateMsgTx, peerUpdateCh, lostId)
 
+	go drvElevator(id,chanNewOrder,drvFloors,drvObstr,drvStop, chanElevator,ElevStateMsgTx)
+
+
+	select{}
+}
+/*
+
+
+	//Timer := time.NewTimer(2 * time.Second)
+	//Timer.Stop()
+
+	
+	//SendStateTicker := time.NewTicker(1*time.Second)
+
+	for i:= range ElevatorLastMoved{
+		ElevatorLastMoved[i] =  time.Now()
+	}
+	
+	//lostOrders := make(chan NewOrderMsg)
+	//go DistibuteLostOrders(id,powerloss)
+	//drive down if between floors
+	elevstate := ElevStateMsg{
+		SenderId: id,
+		Message:  "State Update",
+		Elevator: Elevator,
+	}
 	for {
 		select {
 		
 		case <-SendStateTicker.C:
 			//send my state every 1 seconds
-			_mtx.Lock()
+			
 			ElevStateMsgTx <- elevstate
-			_mtx.Unlock()
+			
 
 		case p := <-peerUpdateCh:
 
@@ -149,32 +130,16 @@ func main() {
 
 			//i en annen case: ta new sin cab order kolonne og or'e med lagret cab orders
 
-			ActiveElevatorStates(p.Peers,&_mtx4)
+			ActiveElevatorStates(p.Peers)
 			//fmt.Println("update active e: ", ElevStateArray)
 			
 		case l := <- lostOrders:
 			//update active elevators
-				_mtx2.Lock() 
+				
 				NewOrderMsgTx <- l
-				_mtx2.Unlock()
+		
 			//redistribuere alle ordre
-/*
-			//sende disse til de som skal ha dem
-			go func() {
-				//send newOrder message for 2 seconds then stop.
-				for timeout := time.After(500 * time.Millisecond); ; {
-					select {
-					case <-timeout:
-						return
-					default:
-					}
-					_mtx2.Lock() 
-					NewOrderMsgTx <- l
-					_mtx2.Unlock() 
-					time.Sleep(100 * time.Millisecond)
-				}
-			}()
-*/
+
 		case r := <-ElevStateMsgRx:
 			//fmt.Println("new msg from", r.SenderId)
 
@@ -191,22 +156,7 @@ func main() {
 
 			msg := NewOrderDistributer(ElevStateArray, b.Button, b.Floor, id, Elevator,&_mtx4) //ny mld med hvem som skal ha ordre!
 			NewOrderMsgTx <- msg
-			/*
-			go func() {
-				//send newOrder message for 2 seconds then stop.
-				for timeout := time.After(1 * time.Second); ; {
-					select {
-					case <-timeout:
-						return
-					default:
-					}
-					_mtx2.Lock() 
-					NewOrderMsgTx <- msg
-					_mtx2.Unlock() 
-					time.Sleep(100 * time.Millisecond)
-				}
-			}()
-			*/
+			
 
 		case m := <-NewOrderMsgRx:
 			fmt.Println("new order recieved: ", m)
@@ -216,13 +166,12 @@ func main() {
 				OnRequestButtonPress(m.Button.Floor, m.Button.Button, Timer) //sets button request == true on wanted elevator
 			}
 			
-			_mtx.Lock()
 			elevstate = ElevStateMsg{
 				SenderId: id,
 				Message:  "State Update",
 				Elevator: Elevator,
 			} //oppdatere requests basert på knappetrykk
-			_mtx.Unlock()
+			
 			
 		case a := <-drv_floors:
 			fmt.Printf("floor: %+v\n", a)
@@ -231,16 +180,14 @@ func main() {
 			OnFloorArrival(a, id, Timer)
 			SyncAllLights(ElevStateArray, id)
 
-			_mtx.Lock()
+			
 			
 			elevstate = ElevStateMsg{
 				SenderId: id,
 				Message:  "State Update",
 				Elevator: Elevator, //sende over min state hele tiden!
 			}
-			_mtx.Unlock()
-		
-
+			
 		case a := <-drv_obstr:
 			fmt.Printf("Obstuction! %+v\n", a)
 			if a && Elevator.Behaviour==EBdoorOpen{
@@ -260,6 +207,7 @@ func main() {
 			//alarm
 			fmt.Println("In lostId: ", id)
 			DistibuteLostOrders(id,&_mtx4,NewOrderMsgTx)
+
 
 		case a := <-drv_stop:
 			fmt.Printf("stop button: %+v\n", a)
@@ -283,3 +231,4 @@ func main() {
 	}
 
 }
+*/

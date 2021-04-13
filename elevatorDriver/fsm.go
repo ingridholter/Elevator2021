@@ -4,7 +4,6 @@ import (
 	"fmt"
 	. "main/config"
 	. "main/elevio"
-	"sync"
 	//. "main/lights"
 	"time"
 )
@@ -25,86 +24,82 @@ func SetLights(elev ElevState) {
 	}
 }
 
-func OnRequestButtonPress(btnFloor int, btnType ButtonType, timer *time.Timer) {
+func OnRequestButtonPress(elevator ElevState, btnFloor int, btnType ButtonType, timer *time.Timer, chanElevator chan ElevState) {
 
-	
 	fmt.Println("adding to my requests")
-	switch Elevator.Behaviour {
+	switch elevator.Behaviour {
 	case EBdoorOpen:
-		if Elevator.Floor == btnFloor {
+		if elevator.Floor == btnFloor {
 			fmt.Println("RESET O")
 			timer.Reset(2 * time.Second)
 			//så slette ordren?
-			Elevator = RequestClearAtCurrentFloor(Elevator)
+			elevator = RequestClearAtCurrentFloor(elevator)
 		
 
 		} else {
-			Elevator.Requests[btnFloor][btnType] = true
+			elevator.Requests[btnFloor][btnType] = true
 		}
 	case EBmoving:
-		Elevator.Requests[btnFloor][btnType] = true
+		elevator.Requests[btnFloor][btnType] = true
 	case EBidle:
-		if Elevator.Floor == btnFloor {
+		if elevator.Floor == btnFloor {
 			SetDoorOpenLamp(true)
 			fmt.Println("RESET I")
 			timer.Reset(2 * time.Second) //TimerDoor() //timer start
-			Elevator.Behaviour = EBdoorOpen
+			elevator.Behaviour = EBdoorOpen
 			
 		} else {
-			Elevator.Requests[btnFloor][btnType] = true
-			Elevator.Dir = RequestChooseDirection(Elevator)
-			SetMotorDirection(Elevator.Dir)
-			Elevator.Behaviour = EBmoving
+			elevator.Requests[btnFloor][btnType] = true
+			elevator.Dir = RequestChooseDirection(elevator)
+			SetMotorDirection(elevator.Dir)
+			elevator.Behaviour = EBmoving
 		}
 	}
-	//fmt.Println("Elevator ", Elevator)
-	//can print the state of elevator for debugg process
+	chanElevator <- elevator
 }
 
-func OnFloorArrival(newFloor int, id string, timer *time.Timer) {
+func OnFloorArrival(elevator ElevState,newFloor int, id string, timer *time.Timer,chanElevator chan ElevState) {
 	//can print the new floor and the state of elevator
 	//Id, _ := strconv.Atoi(id)
 
-	Elevator.Floor = newFloor
-	SetFloorIndicator(Elevator.Floor)
-	fmt.Println("state:",Elevator.Behaviour)
+	elevator.Floor = newFloor
+	SetFloorIndicator(elevator.Floor)
+	fmt.Println("state:",elevator.Behaviour)
 
-	switch Elevator.Behaviour {
+	switch elevator.Behaviour {
 	case EBmoving:
-		if RequestShouldStop(Elevator) {
+		if RequestShouldStop(elevator) {
 			SetMotorDirection(MD_Stop)
 			fmt.Println("set open door lamp")
 			SetDoorOpenLamp(true)
 
-			Elevator = RequestClearAtCurrentFloor(Elevator)
-			//ElevStateArray[Id] = Elevator //vet ikke om denne er nødvendig
-
-			//SyncAllLights(ElevStateArray, id)
+			elevator = RequestClearAtCurrentFloor(elevator)
+			
 			fmt.Println("RESET M")
-			timer.Reset(2 * time.Second) //TimerDoor() //start timer for door
-			//SetLights(Elevator) vet ikke om det går fint at den er med her eller ikke
-			Elevator.Behaviour = EBdoorOpen
+			timer.Reset(2 * time.Second) //start timer for door
+			
+			elevator.Behaviour = EBdoorOpen
 		}
 	}
-	//can print state
+	chanElevator <- elevator
 }
 
-func OnDoorTimeOut(m *sync.Mutex) {
+func OnDoorTimeOut(elevator ElevState,chanElevator chan ElevState) {
 	//can print elevator state and function
 	fmt.Println("IN ON FLOOR TIME OUT")
-	switch Elevator.Behaviour {
+	switch elevator.Behaviour {
 	case EBdoorOpen:
 
-		Elevator.Dir = RequestChooseDirection(Elevator)
+		elevator.Dir = RequestChooseDirection(elevator)
 		fmt.Println("Close door")
 		SetDoorOpenLamp(false)
-		SetMotorDirection(Elevator.Dir)
-		if Elevator.Dir == MD_Stop {
+		SetMotorDirection(elevator.Dir)
+		if elevator.Dir == MD_Stop {
 
-			Elevator.Behaviour = EBidle
+			elevator.Behaviour = EBidle
 		} else {
-			Elevator.Behaviour = EBmoving
+			elevator.Behaviour = EBmoving
 		}
 	}
-	//print state?
+	chanElevator <- elevator
 }

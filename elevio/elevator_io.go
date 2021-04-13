@@ -33,8 +33,8 @@ func Init(addr string, numFloors int) {
 		panic(err.Error())
 	}
 	_initialized = true
-	fmt.Println("floor: ", getFloor())
-	if getFloor() == -1 {
+	fmt.Println("floor: ", GetFloor())
+	if GetFloor() == -1 {
 		Between = true
 	}else{
 		
@@ -108,7 +108,7 @@ func PollFloorSensor(receiver chan<- int) {
 	prev := -1
 	for {
 		time.Sleep(_pollRate)
-		v := getFloor()
+		v := GetFloor()
 		if v != prev && v != -1 {
 			receiver <- v
 		}
@@ -149,7 +149,7 @@ func getButton(button ButtonType, floor int) bool {
 	return toBool(buf[1])
 }
 
-func getFloor() int {
+func GetFloor() int {
 	_mtx.Lock()
 	defer _mtx.Unlock()
 	_conn.Write([]byte{7, 0, 0, 0})

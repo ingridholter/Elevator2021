@@ -5,7 +5,7 @@ import (
 	. "main/config"
 	. "main/elevatorDriver"
 	"strconv"
-	"sync"
+	
 )
 
 //Får inn alle states fra elevator observer
@@ -46,7 +46,7 @@ func bestElevator(eOld [NumElevators]ElevState) int {
 }
 
 //simualte clearing orders
-func SimualtionRequestClearAtCurrentFloor(eOld ElevState) ElevState {
+func SimualtionRequestClearAtCurrentFloor(eOld ElevState) ElevState{
 	elev := eOld
 	elev.Requests[elev.Floor][BT_Cab] = false
 	switch elev.Dir {
@@ -107,8 +107,25 @@ func timeToIdle(eOld ElevState) int {
 	}
 }
 
+
+
+func checkDuplicate(allElevators [NumElevators]ElevState,button ButtonEvent) bool{
+
+	temp := false
+	for _, elevator := range allElevators {
+		if elevator.Floor != -2 {	
+			temp = temp || elevator.Requests[button.Floor][button.Button]
+		}
+	}
+	return temp
+}
+
+
+
+
+
 //send msg to the id that should take the order
-func NewOrderDistributer(eOld [NumElevators]ElevState, btnType ButtonType, f int, id string, elevator ElevState, m *sync.Mutex) NewOrderMsg{
+func NewOrderDistributer(eOld [NumElevators]ElevState, btnType ButtonType, f int, id string) NewOrderMsg{
 
 	//min id
 	Id, _ := strconv.Atoi(id)
@@ -117,7 +134,8 @@ func NewOrderDistributer(eOld [NumElevators]ElevState, btnType ButtonType, f int
 
 	b := ButtonEvent{Button: btnType, Floor: f}
 
-	if ElevStateArray[bestElevatorId].Requests[f][btnType]{
+	
+	if checkDuplicate(eOld,b){
 		
 		//da har vi ordren fra før
 		msgNoOne := NewOrderMsg{
@@ -131,11 +149,11 @@ func NewOrderDistributer(eOld [NumElevators]ElevState, btnType ButtonType, f int
 	//makes sure that cab orders are taken by owners
 	if bestElevatorId == Id || btnType == 2 {
 
-		//oppdatere egen request matrise og elevstatearray
-		elevator.Requests[f][btnType] = true
-		m.Lock()
-		ElevStateArray[Id].Requests[f][btnType] = true
-		m.Unlock()
+		//Viktig at cabOrders blir tatt ved nettverksfeil, så tror vi må ha noe mer her
+
+		//elevator.Requests[f][btnType] = true
+		//ElevStateArray[Id].Requests[f][btnType] = true
+		
 		
 		//send mld til meg seg
 		msgMe := NewOrderMsg{
