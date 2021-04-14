@@ -73,9 +73,10 @@ func main() {
 	chanElevatorLastMoved := make(chan map[int]time.Time, 1)
 	lostId := make(chan int, NumElevators) //only one id lost a time
 	chanLostElevators := make(chan [NumElevators]string, 1)
+	lightsNoNetwork:=make(chan ElevState)
 
-	go DrvElevator(id, chanNewOrder, drvFloors, drvObstr, drvStop, chanElevator, ElevStateMsgTx)
-	go ElevatorObserver(id, ElevStateMsgRx, drvButtons, NewOrderMsgRx, NewOrderMsgTx, chanNewOrder, chanElevator, chanElevatorArray, ElevStateMsgTx, peerUpdateCh, lostId, chanElevatorLastMoved, chanLostElevators)
+	go DrvElevator(id, chanNewOrder, drvFloors, drvObstr, drvStop, chanElevator, ElevStateMsgTx,lightsNoNetwork)
+	go ElevatorObserver(id, ElevStateMsgRx, drvButtons, NewOrderMsgRx, NewOrderMsgTx, chanNewOrder, chanElevator, chanElevatorArray, ElevStateMsgTx, peerUpdateCh, lostId, chanElevatorLastMoved, chanLostElevators,lightsNoNetwork)
 
 	select {}
 }
