@@ -7,7 +7,8 @@ import (
 	"time"
 )
 
-func DrvElevator(id string, chanNewOrder <-chan ButtonEvent, chanFloors <-chan int, chanObstr <-chan bool, chanStop chan bool, chanElevator chan ElevState, ElevStateMsgTx chan<- ElevStateMsg) {
+func DrvElevator(id string, chanNewOrder <-chan ButtonEvent, chanFloors <-chan int, chanObstr <-chan bool, 
+	chanStop chan bool, chanElevator chan ElevState, ElevStateMsgTx chan<- ElevStateMsg,lightsNoNetwork chan ElevState) {
 
 	elevator := ElevState{
 		Floor:     GetFloor(),
@@ -41,7 +42,7 @@ func DrvElevator(id string, chanNewOrder <-chan ButtonEvent, chanFloors <-chan i
 			chanElevator <- elevator
 
 		case b := <-chanNewOrder: //SyncAllLights(ElevStateArray, id)
-			fmt.Println("lagt til i min ordre kanal")
+			fmt.Println("lagt til i min ordre kanal: ",id)
 			elevator = <-chanElevator
 
 			OnRequestButtonPress(elevator, b.Floor, b.Button, DoorTimer, chanElevator)
@@ -50,7 +51,7 @@ func DrvElevator(id string, chanNewOrder <-chan ButtonEvent, chanFloors <-chan i
 			fmt.Println("In case Floor: ", f)
 
 			elevator = <-chanElevator
-			OnFloorArrival(elevator, f, id,DoorTimer, chanElevator)
+			OnFloorArrival(elevator, f, id,DoorTimer, chanElevator,lightsNoNetwork)
 
 		case <-DoorTimer.C:
 			fmt.Println("in time out")
