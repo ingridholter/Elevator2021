@@ -27,4 +27,4 @@ go run main.go -id=1
 update go: https://khongwooilee.medium.com/how-to-update-the-go-version-6065f5c8c3ec
 
 
-export PATH="/path/to/dir:$PATH"
+export PATH="/home/student/.cargo/bin:$PATH"
