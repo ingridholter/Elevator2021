@@ -147,9 +147,6 @@ func NewOrderDistributer(eOld [NumElevators]ElevState, btnType ButtonType, f int
 
 		//Viktig at cabOrders blir tatt ved nettverksfeil, så tror vi må ha noe mer her
 
-		//elevator.Requests[f][btnType] = true
-		//ElevStateArray[Id].Requests[f][btnType] = true
-
 		//send mld til meg seg
 		msgMe := NewOrderMsg{
 			SenderId:   id,

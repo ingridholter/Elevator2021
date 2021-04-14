@@ -123,7 +123,7 @@ func AnyRequestsExist(elevator ElevState) bool {
 	return false
 }
 
-func UpdateTimerElevatorLost(id string, msg ElevStateMsg, elevLastMoved chan map[int]time.Time, allElevators [NumElevators]ElevState, lostElevators [NumElevators]string) {
+func UpdateTimerElevatorLost(id string, msg ElevStateMsg, elevLastMoved chan map[int]time.Time, allElevators [NumElevators]ElevState, lostElevators [NumElevators]string, chanLostElevators chan [NumElevators]string, NewOrderMsgTx chan<- NewOrderMsg) {
 	//Id, _ := strconv.Atoi(id)
 
 	SenderIdInt, _ := strconv.Atoi(msg.SenderId)
@@ -131,12 +131,26 @@ func UpdateTimerElevatorLost(id string, msg ElevStateMsg, elevLastMoved chan map
 
 	oldElevState := allElevators[SenderIdInt]
 
-	for j, v := range lostElevators {
-		if v == msg.SenderId {
-			lostElevators[j] = "q"
+	for index, lostId := range lostElevators {
+		if lostId == msg.SenderId {
+			fmt.Println("fått mld fra: ", msg.SenderId)
+			lostElevators[index] = "L"
+			//sende cab order til den som er lost
+			for f := 0; f < NumFloors; f++ {
+				if oldElevState.Requests[f][BT_Cab] || newElevState.Requests[f][BT_Cab] {
+					msg := NewOrderMsg{
+						SenderId:   id,
+						RecieverId: lostId,
+						Button:     ButtonEvent{Floor: f, Button: BT_Cab},
+					}
+					fmt.Println("adding msg to chan")
+					NewOrderMsgTx <- msg
+				}
+
+			}
 		}
 	}
-
+	fmt.Println("lostelevator in update timer: ", lostElevators)
 	//fmt.Println("senderid: ", SenderIdInt)
 	//fmt.Println("any requests? ",AnyRequestsExist(oldElevState))
 
@@ -153,24 +167,37 @@ func UpdateTimerElevatorLost(id string, msg ElevStateMsg, elevLastMoved chan map
 		elevatorLastMoved[SenderIdInt] = time.Now()
 	}
 	elevLastMoved <- elevatorLastMoved
+	chanLostElevators <- lostElevators
 }
 
-func CheckTimerElevatorLost(elevLastMoved chan map[int]time.Time, lostId chan int) {
+func CheckTimerElevatorLost(elevLastMoved chan map[int]time.Time, lostId chan int, lostElevators [NumElevators]string, chanLostElevators chan [NumElevators]string) {
 	elevatorLastMoved := <-elevLastMoved
 
 	elevLastMoved <- elevatorLastMoved
 
 	for i, t := range elevatorLastMoved {
+
 		if int(time.Now().Second())-int(t.Second()) > 7 {
-			//fmt.Println(i)
-			lostId <- i
+			id := strconv.Itoa(i)
+			fmt.Println("elevator lost: ", i, lostElevators[i])
+			if lostElevators[i] != id {
+				fmt.Println("in if")
+				lostElevators[i] = id
+				fmt.Println("lost elevator array:", lostElevators[i])
+				lostId <- i
+			}
 		}
 	}
+	chanLostElevators <- lostElevators
+	//fmt.Println("lostelevators in checktimer: ", lostElevators)
 }
 
 //redistrubuere ordrene til en tapt heis. OBS IKKE CAB ORDERS!!
 func DistibuteLostOrders(LostId int, allElevators [NumElevators]ElevState, NewOrderMsgTx chan<- NewOrderMsg, chanElevatorArray chan [NumElevators]ElevState) {
-
+	if LostId == -2 {
+		chanElevatorArray <- allElevators
+		return
+	}
 	//lagrer lost id sine request i ny matrise
 	lostRequests := allElevators[LostId].Requests
 	fmt.Println("lostrequests: ", lostRequests)
@@ -184,11 +211,16 @@ func DistibuteLostOrders(LostId int, allElevators [NumElevators]ElevState, NewOr
 	for floor := 0; floor < NumFloors; floor++ {
 		for btn := 0; btn < NumButtons; btn++ {
 			if lostRequests[floor][btn] {
-				fmt.Println("DISTRIBUTE ORDER")
-				msg := NewOrderDistributer(allElevators, ButtonType(btn), floor, strconv.Itoa(LostId))
-				fmt.Println("before newordermsgTx")
-				NewOrderMsgTx <- msg
-				fmt.Println("after newordermsgTx")
+				if lostRequests[floor][BT_Cab] {
+					//b := ButtonEvent{Button: BT_Cab, Floor: floor}
+					//chanCabOrders <- b
+				} else {
+					fmt.Println("DISTRIBUTE ORDER")
+					msg := NewOrderDistributer(allElevators, ButtonType(btn), floor, strconv.Itoa(LostId))
+					fmt.Println("before newordermsgTx")
+					NewOrderMsgTx <- msg
+					fmt.Println("after newordermsgTx")
+				}
 			}
 		}
 	}

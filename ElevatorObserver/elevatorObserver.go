@@ -13,7 +13,8 @@ import (
 func ElevatorObserver(id string, ElevStateMsgRx <-chan ElevStateMsg, ButtonPressed <-chan ButtonEvent,
 	NewOrderMsgRx <-chan NewOrderMsg, NewOrderMsgTx chan<- NewOrderMsg,
 	chanNewOrder chan<- ButtonEvent, chanElevator chan ElevState, chanElevatorArray chan [NumElevators]ElevState,
-	ElevStateMsgTx chan ElevStateMsg, peerUpdateCh <-chan peers.PeerUpdate, lostId chan int, chanElevatorLastMoved chan map[int]time.Time) {
+	ElevStateMsgTx chan ElevStateMsg, peerUpdateCh <-chan peers.PeerUpdate, lostId chan int,
+	chanElevatorLastMoved chan map[int]time.Time, chanLostElevators chan [NumElevators]string) {
 
 	var elevatorArray [NumElevators]ElevState
 	Id, _ := strconv.Atoi(id)
@@ -38,8 +39,9 @@ func ElevatorObserver(id string, ElevStateMsgRx <-chan ElevStateMsg, ButtonPress
 
 	var lostElevators [NumElevators]string
 	for j := range lostElevators {
-		lostElevators[j] = "q"
+		lostElevators[j] = "L"
 	}
+	chanLostElevators <- lostElevators
 
 	checkElevatorLost := time.NewTicker(80 * time.Millisecond)
 
@@ -61,6 +63,13 @@ func ElevatorObserver(id string, ElevStateMsgRx <-chan ElevStateMsg, ButtonPress
 			fmt.Printf("  New:      %q\n", p.New)
 			fmt.Printf("  Lost:     %q\n", p.Lost)
 
+			var LostId int = -2
+
+			//antar at p.Lost kun har en id på seg
+			for lostId := range p.Lost {
+				LostId = lostId
+			}
+
 			//evnt gjøre noe med new mtp software kræsj
 
 			//Ta lost sine cab orders og lagre dem.
@@ -69,14 +78,17 @@ func ElevatorObserver(id string, ElevStateMsgRx <-chan ElevStateMsg, ButtonPress
 
 			//i en annen case: ta new sin cab order kolonne og or'e med lagret cab orders
 			elevatorArray = <-chanElevatorArray
+
+			DistibuteLostOrders(LostId, elevatorArray, NewOrderMsgTx, chanElevatorArray)
+			elevatorArray = <-chanElevatorArray
 			ActiveElevatorStates(p.Peers, elevatorArray, chanElevatorArray)
 			//fmt.Println("elevatorStateArray: ", elevatorArray)
 
 		case m := <-ElevStateMsgRx:
 			//fmt.Println("Recieving state message ")
 			elevatorArray = <-chanElevatorArray
-
-			UpdateTimerElevatorLost(id, m, chanElevatorLastMoved, elevatorArray, lostElevators)
+			lostElevators = <-chanLostElevators
+			UpdateTimerElevatorLost(id, m, chanElevatorLastMoved, elevatorArray, lostElevators, chanLostElevators, NewOrderMsgTx)
 
 			UpdateElevStateArray(m, elevatorArray, chanElevatorArray)
 
@@ -112,17 +124,13 @@ func ElevatorObserver(id string, ElevStateMsgRx <-chan ElevStateMsg, ButtonPress
 				fmt.Println("LOST ID: ", Id)
 				fmt.Println("lostElevators: ", lostElevators)
 			}
-
-			id := strconv.Itoa(Id)
-			if lostElevators[Id] != id {
-				lostElevators[Id] = id
-				fmt.Println("restributing orders", Id)
-				elevatorArray = <-chanElevatorArray
-				DistibuteLostOrders(Id, elevatorArray, NewOrderMsgTx, chanElevatorArray)
-			}
+			fmt.Println("lostElevators: ", lostElevators)
+			elevatorArray = <-chanElevatorArray
+			DistibuteLostOrders(Id, elevatorArray, NewOrderMsgTx, chanElevatorArray)
 
 		case <-checkElevatorLost.C:
-			CheckTimerElevatorLost(chanElevatorLastMoved, lostId)
+			lostElevators = <-chanLostElevators
+			CheckTimerElevatorLost(chanElevatorLastMoved, lostId, lostElevators, chanLostElevators)
 		}
 
 	}

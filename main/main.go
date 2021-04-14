@@ -71,10 +71,11 @@ func main() {
 	chanElevator := make(chan ElevState, 1)
 	chanElevatorArray := make(chan [NumElevators]ElevState, 1)
 	chanElevatorLastMoved := make(chan map[int]time.Time, 1)
-	lostId := make(chan int, 3) //only one id lost a time
+	lostId := make(chan int, NumElevators) //only one id lost a time
+	chanLostElevators := make(chan [NumElevators]string, 1)
 
 	go DrvElevator(id, chanNewOrder, drvFloors, drvObstr, drvStop, chanElevator, ElevStateMsgTx)
-	go ElevatorObserver(id, ElevStateMsgRx, drvButtons, NewOrderMsgRx, NewOrderMsgTx, chanNewOrder, chanElevator, chanElevatorArray, ElevStateMsgTx, peerUpdateCh, lostId, chanElevatorLastMoved)
+	go ElevatorObserver(id, ElevStateMsgRx, drvButtons, NewOrderMsgRx, NewOrderMsgTx, chanNewOrder, chanElevator, chanElevatorArray, ElevStateMsgTx, peerUpdateCh, lostId, chanElevatorLastMoved, chanLostElevators)
 
 	select {}
 }
