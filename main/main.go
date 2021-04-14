@@ -61,7 +61,7 @@ func main() {
 	drvButtons := make(chan ButtonEvent)
 	drvFloors := make(chan int)
 	drvObstr := make(chan bool)
-	drvStop := make(chan bool)
+	drvStop := make(chan bool,1)
 	go PollButtons(drvButtons)
 	go PollFloorSensor(drvFloors)
 	go PollObstructionSwitch(drvObstr)

@@ -8,7 +8,7 @@ import (
 )
 
 //mac version:
-
+/*
 func DialBroadcastUDP(port int) net.PacketConn {
 	s, err := syscall.Socket(syscall.AF_INET, syscall.SOCK_DGRAM, syscall.IPPROTO_UDP)
 	if err != nil {
@@ -40,9 +40,9 @@ func DialBroadcastUDP(port int) net.PacketConn {
 
 	return conn
 }
-
+*/
 //linux:
-/*
+
 func DialBroadcastUDP(port int) net.PacketConn {
 	s, err := syscall.Socket(syscall.AF_INET, syscall.SOCK_DGRAM, syscall.IPPROTO_UDP)
 	if err != nil {
@@ -70,4 +70,4 @@ func DialBroadcastUDP(port int) net.PacketConn {
 
 	return conn
 }
-*/
+

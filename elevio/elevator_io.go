@@ -37,6 +37,7 @@ func Init(addr string, numFloors int) {
 	if GetFloor() == -1 {
 		Between = true
 	}
+	SetStopLamp(false)
 }
 
 func SetMotorDirection(dir MotorDirection) {

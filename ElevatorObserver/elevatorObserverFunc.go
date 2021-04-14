@@ -179,7 +179,7 @@ func CheckTimerElevatorLost(elevLastMoved chan map[int]time.Time, lostId chan in
 
 		if int(time.Now().Second())-int(t.Second()) > 7 {
 			id := strconv.Itoa(i)
-			fmt.Println("elevator lost: ", i, lostElevators[i])
+			fmt.Println("elevator lost: ", i)
 			if lostElevators[i] != id {
 				fmt.Println("in if")
 				lostElevators[i] = id
