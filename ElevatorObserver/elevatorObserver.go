@@ -14,7 +14,7 @@ func ElevatorObserver(id string, ElevStateMsgRx <-chan ElevStateMsg, ButtonPress
 	NewOrderMsgRx <-chan NewOrderMsg, NewOrderMsgTx chan<- NewOrderMsg,
 	chanNewOrder chan<- ButtonEvent, chanElevator chan ElevState, chanElevatorArray chan [NumElevators]ElevState,
 	ElevStateMsgTx chan ElevStateMsg, peerUpdateCh <-chan peers.PeerUpdate, lostId chan int,
-	chanElevatorLastMoved chan map[int]time.Time, chanLostElevators chan [NumElevators]string,lightsNoNetwork chan ElevState) {
+	chanElevatorLastMoved chan map[int]time.Time, chanLostElevators chan [NumElevators]string, lightsNoNetwork chan ElevState) {
 
 	var elevatorArray [NumElevators]ElevState
 	Id, _ := strconv.Atoi(id)
@@ -83,7 +83,7 @@ func ElevatorObserver(id string, ElevStateMsgRx <-chan ElevStateMsg, ButtonPress
 			elevatorArray = <-chanElevatorArray
 			ActiveElevatorStates(p.Peers, elevatorArray, chanElevatorArray)
 			//fmt.Println("elevatorStateArray: ", elevatorArray)
-		
+
 		case m := <-ElevStateMsgRx:
 			fmt.Println("Recieving state message")
 			elevatorArray = <-chanElevatorArray
@@ -100,28 +100,29 @@ func ElevatorObserver(id string, ElevStateMsgRx <-chan ElevStateMsg, ButtonPress
 
 		case b := <-ButtonPressed:
 			fmt.Printf("Button pressed %+v\n", b)
-			
+
 			elevatorArray = <-chanElevatorArray
 			fmt.Println("elevator: ", elevatorArray[Id])
 			msg := NewOrderDistributer(elevatorArray, b.Button, b.Floor, id) //ny mld med hvem som skal ha ordre!
+			fmt.Println("elevator after order distr: ", elevatorArray[Id])
 			chanElevatorArray <- elevatorArray
-			
-			lostElevators=<-chanLostElevators
-			chanLostElevators<-lostElevators
-	
-			if msg.RecieverId == id && lostElevators[Id]==id{
+
+			lostElevators = <-chanLostElevators
+			chanLostElevators <- lostElevators
+
+			if msg.RecieverId == id && lostElevators[Id] == id {
 				//ta den selv, ved nettverksfeil
 				fmt.Println("msg ", msg)
 				elevatorArray = <-chanElevatorArray
-				UpdateOrders(id,msg,elevatorArray, chanElevatorArray)
+				UpdateOrders(id, msg, elevatorArray, chanElevatorArray)
 				elevatorArray = <-chanElevatorArray
 				SyncAllLights(elevatorArray, id)
 				chanElevatorArray <- elevatorArray
 				chanNewOrder <- b
-			}else{
+				fmt.Println("elevator after order updated: ", elevatorArray[Id])
+			} else {
 				NewOrderMsgTx <- msg
 			}
-
 
 		case o := <-NewOrderMsgRx:
 			fmt.Println("New order msg: ", o.RecieverId)
@@ -139,29 +140,30 @@ func ElevatorObserver(id string, ElevStateMsgRx <-chan ElevStateMsg, ButtonPress
 
 		case Id := <-lostId:
 			//alarm
-			lostElevators=<-chanLostElevators
-			chanLostElevators<-lostElevators
+			lostElevators = <-chanLostElevators
+			chanLostElevators <- lostElevators
 			if Id == 1 {
 				fmt.Println("LOST ID: ", Id)
 				fmt.Println("lostElevators: ", lostElevators)
 			}
-			
+
 			fmt.Println("lostElevators: ", lostElevators)
 			elevatorArray = <-chanElevatorArray
 			DistibuteLostOrders(Id, elevatorArray, NewOrderMsgTx, chanElevatorArray)
 
 		case <-checkElevatorLost.C:
 			lostElevators = <-chanLostElevators
-			
+
 			CheckTimerElevatorLost(chanElevatorLastMoved, lostId, lostElevators, chanLostElevators)
-		case l:= <-lightsNoNetwork:
+		case e := <-lightsNoNetwork:
 			//skrur av lys
 			lostElevators = <-chanLostElevators
-			chanLostElevators<-lostElevators
-			if lostElevators[Id]==id{
+			chanLostElevators <- lostElevators
+			if lostElevators[Id] == id {
+				fmt.Println("turning off lights when order done")
 				elevatorArray = <-chanElevatorArray
-				elevatorArray[Id] =l
-				
+				elevatorArray[Id] = e
+
 				SyncAllLights(elevatorArray, id)
 				chanElevatorArray <- elevatorArray
 			}

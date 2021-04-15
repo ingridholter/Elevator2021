@@ -70,4 +70,3 @@ func DialBroadcastUDP(port int) net.PacketConn {
 
 	return conn
 }
-

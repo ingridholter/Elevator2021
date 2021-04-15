@@ -36,6 +36,7 @@ func OnRequestButtonPress(elevator ElevState, btnFloor int, btnType ButtonType, 
 			timer.Reset(2 * time.Second)
 			//så slette ordren?
 			elevator = RequestClearAtCurrentFloor(elevator)
+			//lightsNoNetwork <- elevator her også
 
 		} else {
 			elevator.Requests[btnFloor][btnType] = true
@@ -59,7 +60,7 @@ func OnRequestButtonPress(elevator ElevState, btnFloor int, btnType ButtonType, 
 	chanElevator <- elevator
 }
 
-func OnFloorArrival(elevator ElevState, newFloor int, id string, timer *time.Timer, chanElevator chan ElevState,lightsNoNetwork chan ElevState) {
+func OnFloorArrival(elevator ElevState, newFloor int, id string, timer *time.Timer, chanElevator chan ElevState, lightsNoNetwork chan ElevState) {
 	//can print the new floor and the state of elevator
 	//Id, _ := strconv.Atoi(id)
 
@@ -75,12 +76,12 @@ func OnFloorArrival(elevator ElevState, newFloor int, id string, timer *time.Tim
 			SetDoorOpenLamp(true)
 
 			elevator = RequestClearAtCurrentFloor(elevator)
-			lightsNoNetwork <- elevator
 
 			fmt.Println("RESET M")
 			timer.Reset(2 * time.Second) //start timer for door
 
 			elevator.Behaviour = EBdoorOpen
+			lightsNoNetwork <- elevator
 		}
 	}
 
