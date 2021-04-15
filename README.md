@@ -30,5 +30,9 @@ go run main.go -id=1
 
 update go: https://khongwooilee.medium.com/how-to-update-the-go-version-6065f5c8c3ec
 
+sudo iptables -A INPUT -p PROTOCOL --dport 20009 -m statistic --mode random --probability 0.2 -j DROP
+
+sudo iptables -A INPUT -p PROTOCOL --dport 20007 -m statistic --mode random --probability 0.2 -j DROP
+
 
 
