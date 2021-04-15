@@ -107,11 +107,11 @@ func timeToIdle(eOld ElevState) int {
 	}
 }
 
-func checkDuplicate(Id int, allElevators [NumElevators]ElevState, button ButtonEvent) bool {
+func checkDuplicate(Id int, allElevators [NumElevators]ElevState, button ButtonEvent, lostElevators [NumElevators] string) bool {
 
 	temp := false
-	for _, elevator := range allElevators {
-		if elevator.Floor != -2 {
+	for i, elevator := range allElevators {
+		if lostElevators[i] == "!L" {
 			if button.Button != BT_Cab {
 				temp = temp || elevator.Requests[button.Floor][button.Button]
 			} else {
@@ -138,7 +138,7 @@ func NewOrderDistributer(eOld [NumElevators]ElevState, btnType ButtonType, f int
 
 	b := ButtonEvent{Button: btnType, Floor: f}
 
-	if checkDuplicate(Id, eGrandma, b) {
+	if checkDuplicate(Id, eGrandma, b,lostElevators) {
 
 		//da har vi ordren fra før
 		msgNoOne := NewOrderMsg{
