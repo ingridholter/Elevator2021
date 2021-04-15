@@ -92,7 +92,7 @@ func elevatorActive(id int, peers []string) bool {
 }
 
 //oppdatere elevStateArray slik at de peers som ikke er på nettverket har floor=-1 og ingen requests, tar inn p.Peers
-func ActiveElevatorStates(peers []string, allElevators [NumElevators]ElevState, chanElevatorArray chan [NumElevators]ElevState, lostElevators [NumElevators]string, chanLostElevators chan [NumElevators]string) {
+func ActiveElevatorStates(id string, peers []string, allElevators [NumElevators]ElevState, chanElevatorArray chan [NumElevators]ElevState, lostElevators [NumElevators]string, chanLostElevators chan [NumElevators]string, NewOrderMsgTx chan<- NewOrderMsg) {
 
 	var activeElevatorStates [NumElevators]ElevState
 
@@ -104,7 +104,17 @@ func ActiveElevatorStates(peers []string, allElevators [NumElevators]ElevState, 
 		if elevatorActive(i, peers) {
 			activeElevatorStates[i] = allElevators[i]
 			lostElevators[i] = "!L"
-
+			for f := 0; f < NumFloors; f++ {
+				if allElevators[i].Requests[f][BT_Cab] {
+					msg := NewOrderMsg{
+						SenderId:   id,
+						RecieverId: strconv.Itoa(i),
+						Button:     ButtonEvent{Floor: f, Button: BT_Cab},
+					}
+					fmt.Println("adding msg to chan")
+					NewOrderMsgTx <- msg
+				}
+			}
 		} else {
 			activeElevatorStates[i] = allElevators[i]
 			activeElevatorStates[i].Floor = err
@@ -138,21 +148,8 @@ func UpdateTimerElevatorLost(id string, msg ElevStateMsg, elevatorLastMoved map[
 
 	for index, lostId := range lostElevators {
 		if lostId == msg.SenderId && changedState {
-			fmt.Println("fått mld fra: ", msg.SenderId)
+			fmt.Println("endret state, ikke motorstopp: ", msg.SenderId)
 			lostElevators[index] = "!L"
-			//sende cab order til den som er lost
-			for f := 0; f < NumFloors; f++ {
-				if oldElevState.Requests[f][BT_Cab] || newElevState.Requests[f][BT_Cab] {
-					msg := NewOrderMsg{
-						SenderId:   id,
-						RecieverId: lostId,
-						Button:     ButtonEvent{Floor: f, Button: BT_Cab},
-					}
-					fmt.Println("adding msg to chan")
-					NewOrderMsgTx <- msg
-				}
-
-			}
 		}
 	}
 	fmt.Println("lostelevator in update timer: ", lostElevators)
@@ -198,6 +195,7 @@ func CheckTimerElevatorLost(elevLastMoved chan map[int]time.Time, lostId chan in
 
 //redistrubuere ordrene til en tapt heis. OBS IKKE CAB ORDERS!!
 func DistibuteLostOrders(LostId int, allElevators [NumElevators]ElevState, NewOrderMsgTx chan<- NewOrderMsg, chanElevatorArray chan [NumElevators]ElevState) {
+
 	if LostId == -2 {
 		chanElevatorArray <- allElevators
 		return

@@ -12,10 +12,10 @@ import (
 //skal gi ut ny R=4x(heis*3)
 
 //returnerer 100,101,102 basert på heis som skal ta ordren
-func bestElevator(eOld [NumElevators]ElevState) int {
+func bestElevator(eOld [NumElevators]ElevState, lostElevators [NumElevators]string) int {
 	CostMap := make(map[int]int)
 	for elevNum := 0; elevNum < NumElevators; elevNum++ {
-		if eOld[elevNum].Floor == -2 {
+		if lostElevators[elevNum] != "!L" {
 			CostMap[elevNum] = 99999999 //infinity
 		} else {
 			fmt.Println("elevatorNumber: ", elevNum)
@@ -123,7 +123,7 @@ func checkDuplicate(Id int, allElevators [NumElevators]ElevState, button ButtonE
 }
 
 //send msg to the id that should take the order
-func NewOrderDistributer(eOld [NumElevators]ElevState, btnType ButtonType, f int, id string) NewOrderMsg {
+func NewOrderDistributer(eOld [NumElevators]ElevState, btnType ButtonType, f int, id string, lostElevators [NumElevators]string) NewOrderMsg {
 
 	//min id
 	Id, _ := strconv.Atoi(id)
@@ -134,7 +134,7 @@ func NewOrderDistributer(eOld [NumElevators]ElevState, btnType ButtonType, f int
 		eOld[i].Requests[f][btnType] = true
 	}
 
-	bestElevatorId := bestElevator(eOld)
+	bestElevatorId := bestElevator(eOld, lostElevators)
 
 	b := ButtonEvent{Button: btnType, Floor: f}
 

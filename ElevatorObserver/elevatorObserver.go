@@ -81,7 +81,7 @@ func ElevatorObserver(id string, ElevStateMsgRx <-chan ElevStateMsg, ButtonPress
 
 			DistibuteLostOrders(LostId, elevatorArray, NewOrderMsgTx, chanElevatorArray)
 			elevatorArray = <-chanElevatorArray
-			ActiveElevatorStates(p.Peers, elevatorArray, chanElevatorArray, lostElevators, chanLostElevators)
+			ActiveElevatorStates(id, p.Peers, elevatorArray, chanElevatorArray, lostElevators, chanLostElevators, NewOrderMsgTx)
 			//fmt.Println("elevatorStateArray: ", elevatorArray)
 
 		case m := <-ElevStateMsgRx:
@@ -104,7 +104,7 @@ func ElevatorObserver(id string, ElevStateMsgRx <-chan ElevStateMsg, ButtonPress
 
 			elevatorArray = <-chanElevatorArray
 			fmt.Println("elevator: ", elevatorArray[Id])
-			msg := NewOrderDistributer(elevatorArray, b.Button, b.Floor, id) //ny mld med hvem som skal ha ordre!
+			msg := NewOrderDistributer(elevatorArray, b.Button, b.Floor, id, lostElevators) //ny mld med hvem som skal ha ordre!
 			fmt.Println("elevator after order distr: ", elevatorArray[Id])
 			chanElevatorArray <- elevatorArray
 
