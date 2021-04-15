@@ -19,6 +19,7 @@ func bestElevator(eOld [NumElevators]ElevState) int {
 			CostMap[elevNum] = 99999999 //infinity
 		} else {
 			fmt.Println("elevatorNumber: ", elevNum)
+			fmt.Println("costmap: ", CostMap[elevNum])
 			CostMap[elevNum] = timeToIdle(eOld[elevNum])
 		}
 	}
@@ -71,8 +72,8 @@ func SimualtionRequestClearAtCurrentFloor(eOld ElevState) ElevState {
 
 func timeToIdle(eOld ElevState) int {
 	e := eOld
-	const TRAVELTIME = 2500   //hva skal travel time være?
-	const DOOROPENTIME = 3000 //hva skal door open time være?
+	const TRAVELTIME = 2500
+	const DOOROPENTIME = 3000
 
 	var duration int = 0
 	fmt.Println("behaviour: ", e.Behaviour)
@@ -127,11 +128,17 @@ func NewOrderDistributer(eOld [NumElevators]ElevState, btnType ButtonType, f int
 	//min id
 	Id, _ := strconv.Atoi(id)
 
+	eGrandma := eOld
+
+	for i := 0; i < NumElevators; i++ {
+		eOld[i].Requests[f][btnType] = true
+	}
+
 	bestElevatorId := bestElevator(eOld)
 
 	b := ButtonEvent{Button: btnType, Floor: f}
 
-	if checkDuplicate(Id, eOld, b) {
+	if checkDuplicate(Id, eGrandma, b) {
 
 		//da har vi ordren fra før
 		msgNoOne := NewOrderMsg{

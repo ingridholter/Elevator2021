@@ -81,14 +81,15 @@ func ElevatorObserver(id string, ElevStateMsgRx <-chan ElevStateMsg, ButtonPress
 
 			DistibuteLostOrders(LostId, elevatorArray, NewOrderMsgTx, chanElevatorArray)
 			elevatorArray = <-chanElevatorArray
-			ActiveElevatorStates(p.Peers, elevatorArray, chanElevatorArray)
+			ActiveElevatorStates(p.Peers, elevatorArray, chanElevatorArray, lostElevators, chanLostElevators)
 			//fmt.Println("elevatorStateArray: ", elevatorArray)
 
 		case m := <-ElevStateMsgRx:
 			fmt.Println("Recieving state message")
 			elevatorArray = <-chanElevatorArray
 			lostElevators = <-chanLostElevators
-			UpdateTimerElevatorLost(id, m, chanElevatorLastMoved, elevatorArray, lostElevators, chanLostElevators, NewOrderMsgTx)
+			elevatorLastMoved = <-chanElevatorLastMoved
+			UpdateTimerElevatorLost(id, m, elevatorLastMoved, chanElevatorLastMoved, elevatorArray, lostElevators, chanLostElevators, NewOrderMsgTx)
 
 			UpdateElevStateArray(m, elevatorArray, chanElevatorArray)
 
@@ -142,10 +143,6 @@ func ElevatorObserver(id string, ElevStateMsgRx <-chan ElevStateMsg, ButtonPress
 			//alarm
 			lostElevators = <-chanLostElevators
 			chanLostElevators <- lostElevators
-			if Id == 1 {
-				fmt.Println("LOST ID: ", Id)
-				fmt.Println("lostElevators: ", lostElevators)
-			}
 
 			fmt.Println("lostElevators: ", lostElevators)
 			elevatorArray = <-chanElevatorArray

@@ -26,7 +26,7 @@ func SetLights(elev ElevState) {
 	}
 }
 
-func OnRequestButtonPress(elevator ElevState, btnFloor int, btnType ButtonType, timer *time.Timer, chanElevator chan ElevState) {
+func OnRequestButtonPress(elevator ElevState, btnFloor int, btnType ButtonType, timer *time.Timer, chanElevator chan ElevState, lightsNoNetwork chan ElevState) {
 
 	fmt.Println("adding to my requests")
 	switch elevator.Behaviour {
@@ -36,7 +36,6 @@ func OnRequestButtonPress(elevator ElevState, btnFloor int, btnType ButtonType, 
 			timer.Reset(2 * time.Second)
 			//så slette ordren?
 			elevator = RequestClearAtCurrentFloor(elevator)
-			//lightsNoNetwork <- elevator her også
 
 		} else {
 			elevator.Requests[btnFloor][btnType] = true
@@ -57,6 +56,7 @@ func OnRequestButtonPress(elevator ElevState, btnFloor int, btnType ButtonType, 
 			elevator.Behaviour = EBmoving
 		}
 	}
+	lightsNoNetwork <- elevator
 	chanElevator <- elevator
 }
 

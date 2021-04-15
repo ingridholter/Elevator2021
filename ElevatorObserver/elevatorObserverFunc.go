@@ -92,23 +92,26 @@ func elevatorActive(id int, peers []string) bool {
 }
 
 //oppdatere elevStateArray slik at de peers som ikke er på nettverket har floor=-1 og ingen requests, tar inn p.Peers
-func ActiveElevatorStates(peers []string, allElevators [NumElevators]ElevState, chanElevatorArray chan [NumElevators]ElevState) {
+func ActiveElevatorStates(peers []string, allElevators [NumElevators]ElevState, chanElevatorArray chan [NumElevators]ElevState, lostElevators [NumElevators]string, chanLostElevators chan [NumElevators]string) {
 
 	var activeElevatorStates [NumElevators]ElevState
 
 	//error state
 	var err = -2
-
+	lostElevators = <-chanLostElevators
 	//0,1,2
 	for i := 0; i < NumElevators; i++ {
 		if elevatorActive(i, peers) {
 			activeElevatorStates[i] = allElevators[i]
+			lostElevators[i] = "!L"
+
 		} else {
 			activeElevatorStates[i] = allElevators[i]
 			activeElevatorStates[i].Floor = err
 		}
 	}
 	chanElevatorArray <- activeElevatorStates
+	chanLostElevators <- lostElevators
 }
 
 func AnyRequestsExist(elevator ElevState) bool {
@@ -123,18 +126,20 @@ func AnyRequestsExist(elevator ElevState) bool {
 	return false
 }
 
-func UpdateTimerElevatorLost(id string, msg ElevStateMsg, elevLastMoved chan map[int]time.Time, allElevators [NumElevators]ElevState, lostElevators [NumElevators]string, chanLostElevators chan [NumElevators]string, NewOrderMsgTx chan<- NewOrderMsg) {
+func UpdateTimerElevatorLost(id string, msg ElevStateMsg, elevatorLastMoved map[int]time.Time, elevLastMoved chan map[int]time.Time, allElevators [NumElevators]ElevState, lostElevators [NumElevators]string, chanLostElevators chan [NumElevators]string, NewOrderMsgTx chan<- NewOrderMsg) {
 	//Id, _ := strconv.Atoi(id)
 
 	SenderIdInt, _ := strconv.Atoi(msg.SenderId)
 	newElevState := msg.Elevator
 
 	oldElevState := allElevators[SenderIdInt]
+	//changedState := oldElevState.Floor != newElevState.Floor || oldElevState.Dir != newElevState.Dir || oldElevState.Behaviour != newElevState.Behaviour
+	changedState := oldElevState.Dir != newElevState.Dir || oldElevState.Behaviour != newElevState.Behaviour
 
 	for index, lostId := range lostElevators {
-		if lostId == msg.SenderId {
+		if lostId == msg.SenderId && changedState {
 			fmt.Println("fått mld fra: ", msg.SenderId)
-			lostElevators[index] = "L"
+			lostElevators[index] = "!L"
 			//sende cab order til den som er lost
 			for f := 0; f < NumFloors; f++ {
 				if oldElevState.Requests[f][BT_Cab] || newElevState.Requests[f][BT_Cab] {
@@ -156,14 +161,13 @@ func UpdateTimerElevatorLost(id string, msg ElevStateMsg, elevLastMoved chan map
 
 	//fmt.Println("old: ",oldElevState)
 	//fmt.Println("new: ",newElevState)
-	elevatorLastMoved := <-elevLastMoved
 
-	if oldElevState.Floor != newElevState.Floor || oldElevState.Dir != newElevState.Dir || oldElevState.Behaviour != newElevState.Behaviour {
-		fmt.Println("Resetting timer")
+	if changedState || oldElevState.Floor != newElevState.Floor {
+		fmt.Println(SenderIdInt, "Resetting timer")
 		elevatorLastMoved[SenderIdInt] = time.Now()
 	}
 	if !AnyRequestsExist(oldElevState) {
-		//fmt.Println(SenderIdInt, "dont have requests, resetting timer")
+		fmt.Println(SenderIdInt, "dont have requests, resetting timer")
 		elevatorLastMoved[SenderIdInt] = time.Now()
 	}
 	elevLastMoved <- elevatorLastMoved
