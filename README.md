@@ -34,5 +34,12 @@ sudo iptables -A INPUT -p PROTOCOL --dport 20009 -m statistic --mode random --pr
 
 sudo iptables -A INPUT -p PROTOCOL --dport 20007 -m statistic --mode random --probability 0.2 -j DROP
 
+sudo iptables -A INPUT -p tcp --dport 15657 -j ACCEPT
+
+sudo iptables -A INPUT -p tcp --sport 15657 -j ACCEPT
+
+sudo iptables -A INPUT -m statistic --mode random --probability 0.2 -j DROP
+
+
 
 
