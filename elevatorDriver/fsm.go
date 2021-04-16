@@ -54,7 +54,7 @@ func OnRequestButtonPress(elevator ElevState, btnFloor int, btnType ButtonType, 
 			elevator.Dir = RequestChooseDirection(elevator)
 			SetMotorDirection(elevator.Dir)
 			elevator.Behaviour = EBmoving
-		}
+		}	
 	}
 	lightsNoNetwork <- elevator
 	chanElevator <- elevator

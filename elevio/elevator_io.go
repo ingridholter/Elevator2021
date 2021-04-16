@@ -38,6 +38,7 @@ func Init(addr string, numFloors int) {
 		Between = true
 	}
 	SetStopLamp(false)
+	SetDoorOpenLamp(false)
 }
 
 func SetMotorDirection(dir MotorDirection) {

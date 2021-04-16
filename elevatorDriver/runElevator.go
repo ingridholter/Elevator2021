@@ -25,7 +25,8 @@ func DrvElevator(id string, chanNewOrder <-chan ButtonEvent, chanFloors <-chan i
 	DoorTimer := time.NewTimer(3 * time.Second)
 	DoorTimer.Stop()
 	SendStateTicker := time.NewTicker(500 * time.Millisecond)
-
+	
+	
 	for {
 
 		select {
@@ -44,7 +45,7 @@ func DrvElevator(id string, chanNewOrder <-chan ButtonEvent, chanFloors <-chan i
 		case b := <-chanNewOrder: //SyncAllLights(ElevStateArray, id)
 			fmt.Println("lagt til i min ordre kanal: ", id)
 			elevator = <-chanElevator
-
+			
 			OnRequestButtonPress(elevator, b.Floor, b.Button, DoorTimer, chanElevator, lightsNoNetwork)
 
 		case f := <-chanFloors: //SyncAllLights(ElevStateArray, id)
@@ -83,8 +84,10 @@ func DrvElevator(id string, chanNewOrder <-chan ButtonEvent, chanFloors <-chan i
 			} else {
 				SetStopLamp(false)
 				elevator = <-chanElevator
-				elevator.Dir = RequestChooseDirection(elevator)
-				SetMotorDirection(elevator.Dir)
+				if !(elevator.Behaviour == EBdoorOpen) {
+					elevator.Dir = RequestChooseDirection(elevator)
+					SetMotorDirection(elevator.Dir)
+				}
 				chanElevator <- elevator
 			}
 		}

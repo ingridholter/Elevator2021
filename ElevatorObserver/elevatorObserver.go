@@ -66,7 +66,7 @@ func ElevatorObserver(id string, ElevStateMsgRx <-chan ElevStateMsg, ButtonPress
 			var LostId int = -2
 			lostElevators = <-chanLostElevators
 
-			//antar at p.Lost kun har en id på seg
+			
 			for _,lostId := range p.Lost {
 				if len(p.Lost) ==1{
 					LostId,_ = strconv.Atoi(lostId)
@@ -78,20 +78,14 @@ func ElevatorObserver(id string, ElevStateMsgRx <-chan ElevStateMsg, ButtonPress
 			}
 			chanLostElevators <- lostElevators
 			fmt.Println("lost id: ", LostId)
-			//evnt gjøre noe med new mtp software kræsj
-
-			//Ta lost sine cab orders og lagre dem.
-
-			//når koblet på igjen: send msg om cab ordren til den som er new.
-
-			//i en annen case: ta new sin cab order kolonne og or'e med lagret cab orders
+			
 			elevatorArray = <-chanElevatorArray
 
 			DistibuteLostOrders(LostId, elevatorArray, NewOrderMsgTx, chanElevatorArray,lostElevators)
 
 			elevatorArray = <-chanElevatorArray
 			ActiveElevatorStates(id, p.New, elevatorArray, chanElevatorArray, lostElevators, chanLostElevators, NewOrderMsgTx,chanElevatorLastMoved)
-			//fmt.Println("elevatorStateArray: ", elevatorArray)
+			
 
 		case m := <-ElevStateMsgRx:
 			fmt.Println("Recieving state message")
@@ -106,7 +100,6 @@ func ElevatorObserver(id string, ElevStateMsgRx <-chan ElevStateMsg, ButtonPress
 			SyncAllLights(elevatorArray, id,lostElevators)
 			chanElevatorArray <- elevatorArray
 
-			//fmt.Println("out of case")
 
 		case b := <-ButtonPressed:
 			fmt.Printf("Button pressed %+v\n", b)

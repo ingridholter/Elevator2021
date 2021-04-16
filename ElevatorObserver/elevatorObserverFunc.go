@@ -142,7 +142,7 @@ func AnyRequestsExist(elevator ElevState) bool {
 	return false
 }
 
-func UpdateTimerElevatorLost(id string, msg ElevStateMsg, elevatorLastMoved map[int]time.Time, elevLastMoved chan map[int]time.Time, allElevators [NumElevators]ElevState, lostElevators [NumElevators]string, chanLostElevators chan [NumElevators]string, NewOrderMsgTx chan<- NewOrderMsg) {
+func UpdateTimerElevatorLost(id string, msg ElevStateMsg, elevatorLastMoved map[int]time.Time, chanElevLastMoved chan map[int]time.Time, allElevators [NumElevators]ElevState, lostElevators [NumElevators]string, chanLostElevators chan [NumElevators]string, NewOrderMsgTx chan<- NewOrderMsg) {
 	//Id, _ := strconv.Atoi(id)
 
 	SenderIdInt, _ := strconv.Atoi(msg.SenderId)
@@ -173,7 +173,7 @@ func UpdateTimerElevatorLost(id string, msg ElevStateMsg, elevatorLastMoved map[
 		fmt.Println(SenderIdInt, "dont have requests, resetting timer")
 		elevatorLastMoved[SenderIdInt] = time.Now()
 	}
-	elevLastMoved <- elevatorLastMoved
+	chanElevLastMoved <- elevatorLastMoved
 	chanLostElevators <- lostElevators
 }
 
