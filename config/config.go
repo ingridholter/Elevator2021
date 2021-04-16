@@ -51,6 +51,5 @@ type NewOrderMsg struct {
 
 type ElevStateMsg struct {
 	SenderId string
-	//Message  string
 	Elevator ElevState
 }
