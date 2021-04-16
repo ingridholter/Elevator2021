@@ -67,7 +67,7 @@ func main() {
 	go PollObstructionSwitch(drvObstr)
 	go PollStopButton(drvStop)
 
-	chanNewOrder := make(chan ButtonEvent)
+	chanNewOrder := make(chan ButtonEvent,1)
 	chanElevator := make(chan ElevState, 1)
 	chanElevatorArray := make(chan [NumElevators]ElevState, 1)
 	chanElevatorLastMoved := make(chan map[int]time.Time, 1)
