@@ -73,7 +73,8 @@ func UpdateElevStateArray(msg ElevStateMsg, allElevators [NumElevators]ElevState
 
 	id, _ := strconv.Atoi(msg.SenderId)
 
-	allElevators[id] = msg.Elevator
+	
+	allElevators[id] =msg.Elevator
 
 	chanElevatorArray <- allElevators
 }
@@ -121,7 +122,10 @@ func ActiveElevatorStates(id string, new string, allElevators [NumElevators]Elev
 						Button:     ButtonEvent{Floor: f, Button: BT_Cab},
 				}
 				fmt.Println("adding msg to chan")
-				NewOrderMsgTx <- msg
+				for i:=0;i<10;i++{
+					fmt.Println("send cab order! ", i)
+					NewOrderMsgTx <- msg
+				}
 			}
 		}
 	} 
@@ -153,12 +157,14 @@ func UpdateTimerElevatorLost(id string, msg ElevStateMsg, elevatorLastMoved map[
 	//changedState := oldElevState.Dir != newElevState.Dir || oldElevState.Behaviour != newElevState.Behaviour
 
 	for index, lostId := range lostElevators {
+		
 		if lostId == msg.SenderId && changedState {
 			fmt.Println("endret state, ikke motorstopp: ", msg.SenderId)
 			lostElevators[index] = "!L"
 		}
 	}
 	fmt.Println("lostelevator in update timer: ", lostElevators)
+
 	//fmt.Println("senderid: ", SenderIdInt)
 	//fmt.Println("any requests? ",AnyRequestsExist(oldElevState))
 
@@ -200,7 +206,7 @@ func CheckTimerElevatorLost(elevLastMoved chan map[int]time.Time, lostId chan in
 }
 
 //redistrubuere ordrene til en tapt heis. OBS IKKE CAB ORDERS!!
-func DistibuteLostOrders(LostId int, allElevators [NumElevators]ElevState, NewOrderMsgTx chan<- NewOrderMsg, chanElevatorArray chan [NumElevators]ElevState, lostElevators [NumElevators]string) {
+func DistibuteLostOrders(Id int, chanNewOrder chan<- ButtonEvent,LostId int, allElevators [NumElevators]ElevState, NewOrderMsgTx chan<- NewOrderMsg, chanElevatorArray chan [NumElevators]ElevState, lostElevators [NumElevators]string) {
 
 	if LostId == -2 {
 		chanElevatorArray <- allElevators
@@ -226,7 +232,17 @@ func DistibuteLostOrders(LostId int, allElevators [NumElevators]ElevState, NewOr
 					fmt.Println("DISTRIBUTE ORDER")
 					msg := NewOrderDistributer(allElevators, ButtonType(btn), floor, strconv.Itoa(LostId),lostElevators)
 					fmt.Println("before newordermsgTx")
-					NewOrderMsgTx <- msg
+					//bare legg det til i arrayet med en gang
+					Reciever,_:=strconv.Atoi(msg.RecieverId)
+					if Reciever == Id{
+						chanNewOrder<-msg.Button
+						fmt.Println("my lost order, adding to my chan")
+					}
+					//allElevators[Reciever].Requests[floor][btn]=true
+					fmt.Println("add to all elevators: ", allElevators[Reciever])
+					
+					//NewOrderMsgTx <- msg 
+					
 					fmt.Println("after newordermsgTx")
 				}
 			}

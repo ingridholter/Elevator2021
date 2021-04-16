@@ -81,7 +81,7 @@ func ElevatorObserver(id string, ElevStateMsgRx <-chan ElevStateMsg, ButtonPress
 			
 			elevatorArray = <-chanElevatorArray
 
-			DistibuteLostOrders(LostId, elevatorArray, NewOrderMsgTx, chanElevatorArray,lostElevators)
+			DistibuteLostOrders(Id, chanNewOrder,LostId, elevatorArray, NewOrderMsgTx, chanElevatorArray,lostElevators)
 
 			elevatorArray = <-chanElevatorArray
 			ActiveElevatorStates(id, p.New, elevatorArray, chanElevatorArray, lostElevators, chanLostElevators, NewOrderMsgTx,chanElevatorLastMoved)
@@ -113,6 +113,7 @@ func ElevatorObserver(id string, ElevStateMsgRx <-chan ElevStateMsg, ButtonPress
 			lostElevators = <-chanLostElevators
 			chanLostElevators <- lostElevators
 
+			//ved nettverksfeil så skal vi tenne lys og ta ordre som blir trykket på			
 			if msg.RecieverId == id && lostElevators[Id] == id {
 				//ta den selv, ved nettverksfeil
 				fmt.Println("msg ", msg)
@@ -129,7 +130,7 @@ func ElevatorObserver(id string, ElevStateMsgRx <-chan ElevStateMsg, ButtonPress
 
 		case o := <-NewOrderMsgRx:
 
-			fmt.Println("New order msg: ", o.RecieverId)
+			fmt.Println("New order msg: ", o.RecieverId,"should accept? ", AcceptNewOrder(o, id,chanElevatorArray))
 			lostElevators = <-chanLostElevators
 			chanLostElevators <- lostElevators
 
@@ -148,14 +149,14 @@ func ElevatorObserver(id string, ElevStateMsgRx <-chan ElevStateMsg, ButtonPress
 				fmt.Print("sendt to new order")
 			}
 
-		case Id := <-lostId:
+		case L := <-lostId:
 			//alarm
 			lostElevators = <-chanLostElevators
 			chanLostElevators <- lostElevators
 
 			fmt.Println("lostElevators: ", lostElevators)
 			elevatorArray = <-chanElevatorArray
-			DistibuteLostOrders(Id, elevatorArray, NewOrderMsgTx, chanElevatorArray,lostElevators)
+			DistibuteLostOrders(Id, chanNewOrder,L, elevatorArray, NewOrderMsgTx, chanElevatorArray,lostElevators)
 
 		case <-checkElevatorLost.C:
 			lostElevators = <-chanLostElevators
@@ -167,7 +168,7 @@ func ElevatorObserver(id string, ElevStateMsgRx <-chan ElevStateMsg, ButtonPress
 			lostElevators = <-chanLostElevators
 			chanLostElevators <- lostElevators
 			fmt.Println("in case lights no network")
-			if lostElevators[Id] == id {
+			if lostElevators[Id] == id{ // && changeState //sånn at vi ikke setter lys ved motorstopp
 				fmt.Println("turning off lights when order done")
 				elevatorArray = <-chanElevatorArray
 				elevatorArray[Id] = e

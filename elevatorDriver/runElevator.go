@@ -36,7 +36,6 @@ func DrvElevator(id string, chanNewOrder <-chan ButtonEvent, chanFloors <-chan i
 
 			ElevStateMsgTx <- ElevStateMsg{
 				SenderId: id,
-				Message:  "State Update",
 				Elevator: elevator,
 			}
 
