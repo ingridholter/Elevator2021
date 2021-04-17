@@ -1,6 +1,6 @@
 # Elevator Project
 
-This the code for the elevator project made by group67. 
+This the code for the elevator project made by group67. For more details se the different folder for more specific README's
 
 
 ## General implementation methods
