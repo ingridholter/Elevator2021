@@ -8,7 +8,7 @@ Features
 
 We use broadcasting with UDP for sending and receiving messages between elevators. By using broadcasting all peers receive all messages, even the sender itself. 
 
-This is taken into account by adding the function AcceptNewOrder which ensures that the right receiver recieves message.  
+This is taken into account by adding the function AcceptNewOrder which ensures that the right receiver recieves message. See the elevatorObserver module for more.
 
 The peers package is used for detecting Network errors and software crash. 
 
