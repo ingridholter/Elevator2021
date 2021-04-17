@@ -17,7 +17,7 @@ type ElevState struct {
 The floors are 0-indexed. 
 The Requests matrix is build in this way:
 
-	 | UP | DOWN | CAB
+NOTHING| UP | DOWN | CAB
 --------------- | ---------- | ---------- | ----------
 0 | :arrow_forward: / :zzz: / :clock10: | :arrow_forward: / :zzz: / :clock10: |  :arrow_forward: / :zzz: / :clock10:
 1     | :arrow_forward: / :zzz: / :clock10: | :arrow_forward: / :zzz: / :clock10: | :arrow_forward: / :zzz: / :clock10:
