@@ -3,7 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
-	. "main/ElevatorObserver"
+	. "main/syncAllElevators"
 	"main/Network/bcast"
 	"main/Network/peers"
 	. "main/config"
@@ -20,7 +20,6 @@ func main() {
 	if id == "" {
 		localIP, err := peers.LocalIP()
 		if err != nil {
-			fmt.Println(err)
 			localIP = "DISCONNECTED"
 		}
 		id = fmt.Sprintf("peer-%s-%d", localIP, os.Getpid())
@@ -30,7 +29,6 @@ func main() {
 	flag.StringVar(&simport, "simport", "", "simport for this terminal")
 	flag.Parse()
 
-	fmt.Println(id)
 	if simport == "" {
 		simport = "localhost:15657"
 	}
@@ -69,8 +67,8 @@ func main() {
 	LostElevArrayCh := make(chan [NumElevators]string, 1)
 	LightsOfflineCh:=make(chan ElevState)
 
-	go DrvElevator(id, NewOrderCh, drvFloors, drvObstr, drvStop, ElevStateCh, ElevStateMsgTx,LightsOfflineCh)
-	go ElevatorObserver(id, ElevStateMsgRx, drvButtons, NewOrderMsgRx, NewOrderMsgTx, NewOrderCh, ElevStateCh, ElevStateArrayCh, ElevStateMsgTx, peerUpdateCh, LostIdCh, ElevLastMovedCh, LostElevArrayCh,LightsOfflineCh)
+	go RunElevator(id, NewOrderCh, drvFloors, drvObstr, drvStop, ElevStateCh, ElevStateMsgTx,LightsOfflineCh)
+	go SyncElevators(id, ElevStateMsgRx, drvButtons, NewOrderMsgRx, NewOrderMsgTx, NewOrderCh, ElevStateArrayCh, ElevStateMsgTx, peerUpdateCh, LostIdCh, ElevLastMovedCh, LostElevArrayCh,LightsOfflineCh)
 
 	select {}
 }

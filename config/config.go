@@ -1,9 +1,12 @@
 package config
 
+
 const (
-	NumElevators     = 3
-	NumFloors    int = 4
-	NumButtons   int = 3
+	NumElevators     	= 3
+	NumFloors    	 int = 4
+	NumButtons   	 int = 3
+	NoMotorTimeLimit int = 5
+	DoorOpenTime	 	 = 2
 )
 
 type ButtonType int

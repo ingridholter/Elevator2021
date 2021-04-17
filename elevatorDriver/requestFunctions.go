@@ -7,7 +7,6 @@ import (
 func RequestsAbove(elev ElevState) bool {
 	for f := elev.Floor + 1; f < NumFloors; f++ {
 		for btn := 0; btn < NumButtons; btn++ {
-			
 			if elev.Requests[f][btn] {
 				return true
 			}
@@ -19,7 +18,6 @@ func RequestsAbove(elev ElevState) bool {
 func RequestsBelow(elev ElevState) bool {
 	for f := 0; f < elev.Floor; f++ {
 		for btn := 0; btn < NumButtons; btn++ {
-			
 			if elev.Requests[f][btn] {
 				return true
 			}
@@ -60,12 +58,6 @@ func RequestChooseDirection(elev ElevState) MotorDirection {
 	}
 }
 
-/*
-BT_HallUp   ButtonType
-	BT_HallDown
-	BT_Cab
-*/
-
 func RequestShouldStop(elev ElevState) bool {
 	switch elev.Dir {
 	case MD_Down:
@@ -74,13 +66,13 @@ func RequestShouldStop(elev ElevState) bool {
 	case MD_Up:
 		return (elev.Requests[elev.Floor][BT_HallUp] || elev.Requests[elev.Floor][BT_Cab] || !RequestsAbove(elev))
 
-	case MD_Stop: //do nothing?
+	case MD_Stop:
 
 	}
 	return true
 }
 
-//metod 2 for clearing requests, only clearing in same direction
+
 func RequestClearAtCurrentFloor(elev ElevState) ElevState {
 	elev.Requests[elev.Floor][BT_Cab] = false
 	switch elev.Dir {
