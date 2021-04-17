@@ -2,7 +2,7 @@
 Most of the code used in this module is rewritten from C code given by the [project resources](https://github.com/TTK4145/Project-resources)
 
 
-This is the package for the behaviour of one elevator. It contains code for handling order given by the syncElevators module and executes them. 
+This is the package for the behaviour of one elevator. It contains code for handling orders given by the syncElevators module and executes them. 
 
 ElevState is the type for the elvator. It conatins the floor, direction, behaviour (door open, idle, stop, moving) and requests for one elevator. 
 ````
