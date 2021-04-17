@@ -1,14 +1,13 @@
 package elevatorDriver
 
 import (
-	"fmt"
 	. "main/config"
 	. "main/elevio"
 	"time"
 )
 
-func DrvElevator(id string, chanNewOrder <-chan ButtonEvent, chanFloors <-chan int, chanObstr <-chan bool,
-	chanStop chan bool, chanElevator chan ElevState, ElevStateMsgTx chan<- ElevStateMsg, lightsNoNetwork chan ElevState) {
+func RunElevator(id string, NewOrderCh <-chan ButtonEvent, FloorCh <-chan int, ObstrCh <-chan bool,
+	StopCh chan bool, ElevStateCh chan ElevState, ElevStateMsgTx chan<- ElevStateMsg, LightsOfflineCh chan ElevState) {
 
 	elevator := ElevState{
 		Floor:     GetFloor(),
@@ -16,13 +15,14 @@ func DrvElevator(id string, chanNewOrder <-chan ButtonEvent, chanFloors <-chan i
 		Behaviour: EBidle,
 		Requests:  [NumFloors][NumButtons]bool{},
 	}
+
 	if Between {
-		fmt.Println("on init between floors")
-		OnInitBetweenFloors(elevator, chanElevator)
+		OnInitBetweenFloors(elevator, ElevStateCh)
 	} else {
-		chanElevator <- elevator
+		ElevStateCh <- elevator
 	}
-	DoorTimer := time.NewTimer(3 * time.Second)
+
+	DoorTimer := time.NewTimer(DoorOpenTime * time.Second)
 	DoorTimer.Stop()
 	SendStateTicker := time.NewTicker(500 * time.Millisecond)
 	
@@ -32,65 +32,60 @@ func DrvElevator(id string, chanNewOrder <-chan ButtonEvent, chanFloors <-chan i
 		select {
 		case <-SendStateTicker.C:
 
-			elevator = <-chanElevator
+			elevator = <-ElevStateCh
 
 			ElevStateMsgTx <- ElevStateMsg{
 				SenderId: id,
 				Elevator: elevator,
 			}
 
-			chanElevator <- elevator
+			ElevStateCh <- elevator
 
-		case b := <-chanNewOrder: //SyncAllLights(ElevStateArray, id)
-			fmt.Println("lagt til i min ordre kanal: ", id)
-			elevator = <-chanElevator
+		case b := <-NewOrderCh: 
 			
-			OnRequestButtonPress(elevator, b.Floor, b.Button, DoorTimer, chanElevator, lightsNoNetwork)
+			elevator = <-ElevStateCh
+			
+			OnRequestButtonPress(elevator, b.Floor, b.Button, DoorTimer, ElevStateCh, LightsOfflineCh)
 
-		case f := <-chanFloors: //SyncAllLights(ElevStateArray, id)
-			fmt.Println("In case Floor: ", f)
+		case f := <-FloorCh: 
 
-			elevator = <-chanElevator
-			OnFloorArrival(elevator, f, id, DoorTimer, chanElevator, lightsNoNetwork)
+			elevator = <-ElevStateCh
+			OnFloorArrival(elevator, f, id, DoorTimer, ElevStateCh, LightsOfflineCh)
 
 		case <-DoorTimer.C:
-			fmt.Println("in time out")
-			elevator = <-chanElevator
-			OnDoorTimeOut(elevator, chanElevator)
+			elevator = <-ElevStateCh
+			OnDoorTimeOut(elevator, ElevStateCh)
 
-		case a := <-chanObstr:
-			fmt.Printf("Obstuction! %+v\n", a)
-			elevator = <-chanElevator
-			chanElevator <- elevator
-			if a && elevator.Behaviour == EBdoorOpen {
+		case obstr := <-ObstrCh:
+			elevator = <-ElevStateCh
+			ElevStateCh <- elevator
+			if obstr && elevator.Behaviour == EBdoorOpen {
 				DoorTimer.Reset(3 * time.Second)
 				DoorTimer.Stop()
 			}
-			if !a {
+			if !obstr {
 				DoorTimer.Stop()
-				elevator = <-chanElevator
-				OnDoorTimeOut(elevator, chanElevator)
+				elevator = <-ElevStateCh
+				OnDoorTimeOut(elevator, ElevStateCh)
 			}
 
-		case a := <-chanStop:
-			fmt.Printf("stop button: %+v\n", a)
+		case stop := <-StopCh:
 			SetStopLamp(true)
-			if a {
-				elevator = <-chanElevator
+			if stop {
+				elevator = <-ElevStateCh
 				elevator.Dir = MD_Stop
 				SetMotorDirection(elevator.Dir)
-				chanElevator <- elevator
+				ElevStateCh <- elevator
 			} else {
 				SetStopLamp(false)
-				elevator = <-chanElevator
+				elevator = <-ElevStateCh
 				if !(elevator.Behaviour == EBdoorOpen) {
 					elevator.Dir = RequestChooseDirection(elevator)
 					SetMotorDirection(elevator.Dir)
 				}
-				chanElevator <- elevator
+				ElevStateCh <- elevator
 			}
 		}
-		time.Sleep(10 * time.Millisecond)
 	}
 
 }

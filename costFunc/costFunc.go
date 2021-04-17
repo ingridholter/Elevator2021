@@ -1,51 +1,38 @@
 package costFunc
 
+
 import (
-	"fmt"
 	. "main/config"
 	. "main/elevatorDriver"
 	"strconv"
 )
 
-//Får inn alle states fra elevator observer
-//får inn knappetrykk
-//skal gi ut ny R=4x(heis*3)
-
-//returnerer 100,101,102 basert på heis som skal ta ordren
 func bestElevator(eOld [NumElevators]ElevState, lostElevators [NumElevators]string) int {
 	CostMap := make(map[int]int)
-	for elevNum := 0; elevNum < NumElevators; elevNum++ {
-		if lostElevators[elevNum] != "!L" {
-			CostMap[elevNum] = 99999999 //infinity
+	for elevId := 0; elevId < NumElevators; elevId++ {
+		if lostElevators[elevId] == "lost" {
+			CostMap[elevId] = 99999999 //infinity
 		} else {
-			fmt.Println("elevatorNumber: ", elevNum)
-			fmt.Println("costmap: ", CostMap[elevNum])
-			CostMap[elevNum] = timeToIdle(eOld[elevNum])
+			CostMap[elevId] = timeToIdle(eOld[elevId])
 		}
 	}
-	minTime := CostMap[0] //se på mer
+	minTime := CostMap[0]
 	for _, value := range CostMap {
 
 		if value < minTime {
 			minTime = value
-			fmt.Println("min time: ", minTime)
 		}
-
 	}
-	fmt.Println(CostMap)
-	for key, value := range CostMap {
-		fmt.Println("key ", key, "value ", value)
+	
+	for elevator, value := range CostMap {
 		if value == minTime {
-			fmt.Println("key: ", key)
-			return key
+			return elevator
 		}
 
 	}
-	//return -1 if could not find best elevator
-	return -1
+	return -1 
 }
 
-//simualte clearing orders
 func SimualtionRequestClearAtCurrentFloor(eOld ElevState) ElevState {
 	elev := eOld
 	elev.Requests[elev.Floor][BT_Cab] = false
@@ -76,7 +63,6 @@ func timeToIdle(eOld ElevState) int {
 	const DOOROPENTIME = 3000
 
 	var duration int = 0
-	fmt.Println("behaviour: ", e.Behaviour)
 	switch e.Behaviour {
 	case EBidle:
 		e.Dir = RequestChooseDirection(e)
@@ -86,13 +72,11 @@ func timeToIdle(eOld ElevState) int {
 	case EBmoving:
 		duration += TRAVELTIME / 2
 		e.Floor += int(e.Dir)
-		fmt.Println("duration: ", duration)
 	case EBdoorOpen:
 		duration -= DOOROPENTIME / 2
 	}
 
 	for {
-		fmt.Println("elevator: ", e)
 		if RequestShouldStop(e) {
 			e = SimualtionRequestClearAtCurrentFloor(e)
 
@@ -111,7 +95,7 @@ func checkDuplicate(Id int, allElevators [NumElevators]ElevState, button ButtonE
 
 	temp := false
 	for i, elevator := range allElevators {
-		if lostElevators[i] == "!L" {
+		if lostElevators[i] == "found" {
 			if button.Button != BT_Cab {
 				temp = temp || elevator.Requests[button.Floor][button.Button]
 			} else {
@@ -122,13 +106,21 @@ func checkDuplicate(Id int, allElevators [NumElevators]ElevState, button ButtonE
 	return temp
 }
 
-//send msg to the id that should take the order
-func NewOrderDistributer(eOld [NumElevators]ElevState, btnType ButtonType, f int, id string, lostElevators [NumElevators]string) NewOrderMsg {
-
-	//min id
+func NewOrderDistributer(eOld [NumElevators]ElevState, btn ButtonEvent, id string, lostElevators [NumElevators]string) NewOrderMsg {
+	
 	Id, _ := strconv.Atoi(id)
 
-	eGrandma := eOld
+	f := btn.Floor
+	btnType := btn.Button
+
+	if checkDuplicate(Id, eOld, btn,lostElevators) {
+		msgNoOne := NewOrderMsg{
+			SenderId:   id,
+			RecieverId: "duplicate",
+			Button:     btn,
+		}
+		return msgNoOne
+	}
 
 	for i := 0; i < NumElevators; i++ {
 		eOld[i].Requests[f][btnType] = true
@@ -136,29 +128,12 @@ func NewOrderDistributer(eOld [NumElevators]ElevState, btnType ButtonType, f int
 
 	bestElevatorId := bestElevator(eOld, lostElevators)
 
-	b := ButtonEvent{Button: btnType, Floor: f}
-
-	if checkDuplicate(Id, eGrandma, b,lostElevators) {
-
-		//da har vi ordren fra før
-		msgNoOne := NewOrderMsg{
-			SenderId:   id,
-			RecieverId: "duplicate",
-			Button:     b,
-		}
-		return msgNoOne
-	}
-
-	//makes sure that cab orders are taken by owners
 	if bestElevatorId == Id || btnType == 2 {
 
-		//Viktig at cabOrders blir tatt ved nettverksfeil, så tror vi må ha noe mer her
-
-		//send mld til meg seg
 		msgMe := NewOrderMsg{
 			SenderId:   id,
 			RecieverId: id,
-			Button:     b,
+			Button:     btn,
 		}
 		return msgMe
 	}
@@ -166,7 +141,7 @@ func NewOrderDistributer(eOld [NumElevators]ElevState, btnType ButtonType, f int
 	msg := NewOrderMsg{
 		SenderId:   id,
 		RecieverId: strconv.Itoa(bestElevatorId),
-		Button:     b,
+		Button:     btn,
 	}
 
 	return msg
