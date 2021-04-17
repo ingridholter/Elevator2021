@@ -1,6 +1,6 @@
 # SyncAllElevators
 
-This module ensures that all elevators cooperate and work together. It also makes sure that all orders are taken. If an error occur, this module ensures that another elevator serves the UP and DOWN orders for the faulty elevator. However, this system is only sustainable for one error to happen at a time (motor power loss/network disconnection/software crash). 
+This module ensures that all elevators cooperate and work together. It also makes sure that all orders are taken. If an error occur, this module ensures that another elevator serves the UP and DOWN orders for the faulty elevator. However, this system is only sustainable for one error to happen at a time (motor power loss/network disconnection/software crash). The system tries to serve the elevator orders in a smooth and efficient way, so that the elevator in the best position to serve the order is assigned with it. This applies only to the UP and DOWN orders, as the CAB orders are id specific.
 
 # Error detection and handling
 As we never want any order to be lost we have choosen to share all orders with all elevators at all time. This make the system sustainable to errors because other elevators can serve the orders of a faulty elevator. <br/>
