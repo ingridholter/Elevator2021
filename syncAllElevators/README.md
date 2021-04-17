@@ -13,7 +13,7 @@ type ElevState struct {
 	Behaviour ElevBehaviour
 	Requests  [NumFloors][NumButtons]bool
 }
-```
+
 Our re
 
 Elevator State | Elevator 1 | Elevator 2 | Elevator 3
