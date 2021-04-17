@@ -48,4 +48,3 @@ FLOOR\BUTTON| UP | DOWN | CAB
 2     | false | false| false
 3   | false| false |  false
 
- Cab orders are id specific and should never be taken by another id. 
