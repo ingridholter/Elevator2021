@@ -4,7 +4,7 @@
 
 #Variables Arrays and Matrices
 
-This module uses an array of Elevstates for all the available elevators called allElevators. 
+This module uses an array of Elevstates for all the available elevators called elevStateArray. 
 The Elevstate type has information about the state of the elevator and its requests. 
 ````
 type ElevState struct {
@@ -14,12 +14,12 @@ type ElevState struct {
 	Requests  [NumFloors][NumButtons]bool
 }
 ````
-
+The floors are 0-indexed. 
 The Requests matrix is build in this way:
 
-Elevator State | Elevator 1 | Elevator 2 | Elevator 3
+	 | UP | DOWN | CAB
 --------------- | ---------- | ---------- | ----------
-Floor 4 | :arrow_forward: / :zzz: / :clock10: | :arrow_forward: / :zzz: / :clock10: |  :arrow_forward: / :zzz: / :clock10:
-Floor 3     | :arrow_forward: / :zzz: / :clock10: | :arrow_forward: / :zzz: / :clock10: | :arrow_forward: / :zzz: / :clock10:
-Floor 2     | :arrow_forward: / :zzz: / :clock10: | :arrow_forward: / :zzz: / :clock10: | :arrow_forward: / :zzz: / :clock10:
-Floor 1     | :arrow_forward: / :zzz: / :clock10: | :arrow_forward: / :zzz: / :clock10: |  :arrow_forward: / :zzz: / :clock10:
+0 | :arrow_forward: / :zzz: / :clock10: | :arrow_forward: / :zzz: / :clock10: |  :arrow_forward: / :zzz: / :clock10:
+1     | :arrow_forward: / :zzz: / :clock10: | :arrow_forward: / :zzz: / :clock10: | :arrow_forward: / :zzz: / :clock10:
+2     | :arrow_forward: / :zzz: / :clock10: | :arrow_forward: / :zzz: / :clock10: | :arrow_forward: / :zzz: / :clock10:
+3   | :arrow_forward: / :zzz: / :clock10: | :arrow_forward: / :zzz: / :clock10: |  :arrow_forward: / :zzz: / :clock10:
