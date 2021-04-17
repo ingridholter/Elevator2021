@@ -13,8 +13,9 @@ type ElevState struct {
 	Behaviour ElevBehaviour
 	Requests  [NumFloors][NumButtons]bool
 }
+````
 
-Our re
+The Requests matrix is build in this way:
 
 Elevator State | Elevator 1 | Elevator 2 | Elevator 3
 --------------- | ---------- | ---------- | ----------
