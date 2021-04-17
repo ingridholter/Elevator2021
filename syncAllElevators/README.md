@@ -20,13 +20,13 @@ A variable called oneLostId keeps track of which id beeing lost. Since this syst
 The lostElevators array keeps track of the systems available elevators. Every elements index and content corresponds to an elevator id. The value in this array is either "lost" or "found" telling the system which elevators to rely on. 
 
 
-## Weaknesses of out system
+## Weaknesses of our system
 Our system reach a vulnerable state when one elevator rejoins after software crash and needs to get its cab orders from the others. It has no way to get theese ordes back if not from the others so this message sending is critical. As we are supposed to be sustainable for package loss, we have no guarantee that this message will arrive. We found a way around this problem using a for loop and send the message serveral times. However, this would not work in a real-life scenario and should be solved in a robust way. <br/>
 <br/>
 This message need to be sent until we have confirmed its arrival by an answer message. Since there is not another need for this confirmation we stayed with out solution aware of its weakness. 
 
 
-# Variables Arrays and Matrices
+# Variables, arrays and matrices
 
 This module uses an array of Elevstates for all the available elevators called elevStateArray. 
 The Elevstate type has information about the state of the elevator and its requests. 
