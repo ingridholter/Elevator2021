@@ -12,14 +12,14 @@ This is solved by adding the function AcceptNewOrder which ensures that the righ
 
 The peers package is used for detecting Network errors and software crash. 
 
-´´´
+```
 type PeerUpdate struct {
 	Peers []string
 	New   string
 	Lost  []string
 }
 
-´´´
+```
 The PeerUpdate struct gives information about which peers being available and not and newcomers to the system. 
 This is used for error handling and for updating the elevators when they return to normal operation and reconnects with the others. 
 
