@@ -16,6 +16,9 @@ We use broadcasting with udp, and all messages are sent to every elevator listen
 
 Our system is vulnerable to packet loss. To gurantee that no orders are lost over the network communication we only sync the lights if more than one elevator know about the order. If the message with the order is lost, no lights will be turned on an so a person will have to press the button until the message arrives and they see the light. In addition, if somewthing were to happen to one elevator, the order would always be redistributed and never lost. 
 
+## Minor details
+
+When starting the project a flag -id is given with the terminal command, this should be 0, 1 or 2 when working with three elevators. This is given as a string in our program. We consistetly use id with small i as a string and Id with a big I as an int. 
 
 
 ## Til installering og kontrollering på andre maskiner på sanntidslabben
