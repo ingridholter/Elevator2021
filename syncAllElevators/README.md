@@ -5,13 +5,25 @@ This module ensures that all elevators cooperate and work together. It also make
 # Error detection and handling
 As we never want any order to be lost we have choosen to share all orders with all elevators at all time. This make the system sustainable to errors because other elevators can serve the orders of a faulty elevator. <br/>
 <br/>
-The peers package detects network disconnection or software crash. When an network error occur, the UP and DOWN orders meant for the lost elevator is sendt over to the ones remaining on the network. Theese are then recalculated and redistributed betweeen the remaining elevators. All the elevators on the network is at every point aware of all the other elevators orders, so that when an error occurs they are able to save the faulty elevators CAB orders and send it back to the faulty elevator when it rejoin the system. <br/>
+The peers package detects network disconnection or software crash. When an network error occur, the UP and DOWN orders meant for the lost elevator is recalculated and redistributed by the ones remaining on the network. The disconnected elevator will still work in a single-elevator-mode. <br/>
 <br/>
 The peers package also detects when a software crash occurs and handles this in a similar way to network error. The UP and DOWN orders redistributed between the remaining elevators and the CAB orders are saved and attempted resent to the elevator when it rejoins the system. <br/>
 <br/>
-When a motor power loss occures, the elevator is still able to communicate with the others over the network. The peers package is not able to detect this error. We have therefore implemented a timer to detect motor power loss. This timer makes the other ones able to redistribute and serve the lost elevators orders. The CAB orders of the lost elevator is in this error state never lost and the elevator will serve theese when the motor is repaired. <br/>
+When a motor power loss occures, the elevator is still able to communicate with the others over the network. The peers package is not able to detect this error. We have therefore implemented a timer to detect motor power loss, when an elevator is unable to take on of its orders. This timer tells when the other elevators should redistribute and serve the lost elevators orders. The CAB orders of the lost elevator is in this error state never lost and the elevator will serve theese when the motor is repaired. <br/>
 <br/>
 
+## Lost elevator variables and arrays
+For keeping track of the elevators motor power loss an array of times called elevLastMovedMap are added. The times are reset every time the elevators change their stated. This array helps us detect motor power loss and take action. <br/>
+<br/>
+A variable called oneLostId keeps track of which id beeing lost. Since this system is only sustainable for one error at a time this id is set to the value of the faulty elevatoris id. When no id's are lost, oneLostId have the value -1. <br/>
+<br/>
+The lostElevators array keeps track of the systems available elevators. Every elements index and content corresponds to an elevator id. The value in this array is either "lost" or "found" telling the system which elevators to rely on. 
+
+
+## Weaknesses of out system
+Our system reach a vulnerable state when one elevator rejoins after software crash and needs to get its cab orders from the others. It has no way to get theese ordes back if not from the others so this message sending is critical. As we are supposed to be sustainable for package loss, we have no guarantee that this message will arrive. We found a way around this problem using a for loop and send the message serveral times. However, this would not work in a real-life scenario and should be solved in a robust way. <br/>
+<br/>
+This message need to be sent until we have confirmed its arrival by an answer message. Since there is not another need for this confirmation we stayed with out solution aware of its weakness. 
 
 
 # Variables Arrays and Matrices
