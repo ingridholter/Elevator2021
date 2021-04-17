@@ -1,6 +1,24 @@
-# Elevator21
-Elevator project w/networking
+# Elevator Project
 
+This the code for the elevator project made by group67. 
+
+
+## General implementation methods
+
+### Peer-to-peer/fleeting master
+We have chosen a peer-to-peer/fleeting master implementation. This means that if a button is pressed on an elevator panel, the same elevator decides who should take that order and broadcasts it over the network. Likewise if another button panel is pressed, that elevator decides who to take the order
+
+### broadcasting with udp 
+
+We use broadcasting with udp, and all messages are sent to every elevator listening on the same ports. 
+
+### packet loss handling
+
+Our system is vulnerable to packet loss. To gurantee that no orders are lost over the network communication we only sync the lights if more than one elevator know about the order. If the message with the order is lost, no lights will be turned on an so a person will have to press the button until the message arrives and they see the light. In addition, if somewthing were to happen to one elevator, the order would always be redistributed and never lost. 
+
+
+
+## Til installering og kontrollering på andre maskiner på sanntidslabben
 ElevatorServer
 go run -race main.go -id=0 
 
@@ -29,16 +47,6 @@ go run main.go -id=1
 
 
 update go: https://khongwooilee.medium.com/how-to-update-the-go-version-6065f5c8c3ec
-
-sudo iptables -A INPUT -p PROTOCOL --dport 20009 -m statistic --mode random --probability 0.2 -j DROP
-
-sudo iptables -A INPUT -p PROTOCOL --dport 20007 -m statistic --mode random --probability 0.2 -j DROP
-
-sudo iptables -A INPUT -p tcp --dport 15657 -j ACCEPT
-
-sudo iptables -A INPUT -p tcp --sport 15657 -j ACCEPT
-
-sudo iptables -A INPUT -m statistic --mode random --probability 0.2 -j DROP
 
 
 
