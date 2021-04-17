@@ -1,8 +1,8 @@
-#SyncAllElevators
+# SyncAllElevators
 
 
 
-#Variables Arrays and Matrices
+# Variables Arrays and Matrices
 
 This module uses an array of Elevstates for all the available elevators called elevStateArray. 
 The Elevstate type has information about the state of the elevator and its requests. 
