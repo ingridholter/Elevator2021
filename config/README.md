@@ -5,8 +5,9 @@ Our system can be customized into using different elevator hardware. By changing
 ```
 const (
 	NumElevators     = 3
-	NumFloors    int = 4
-	NumButtons   int = 3
-	må endre her!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+	NumFloors    	 int = 4
+	NumButtons   	 int = 3
+	NoMotorTimeLimit int = 5
+	DoorOpenTime	 = 2
 )
 ```
