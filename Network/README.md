@@ -6,7 +6,7 @@ and can be found [here](https://github.com/TTK4145/Network-go).
 Features
 --------
 
-We use broadcasting with UDP for sending and receiving messages between elevators. By using broadcasting all peers receive all messages even the sender itself. 
+We use broadcasting with UDP for sending and receiving messages between elevators. By using broadcasting all peers receive all messages, even the sender itself. 
 
 This is solved by adding the function AcceptNewOrder which ensures that the right receiver recieves message.  
 
