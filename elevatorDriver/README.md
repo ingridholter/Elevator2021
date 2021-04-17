@@ -1,4 +1,4 @@
-# runElevator.go
+# elevatorDriver
 Most of the code used in this module is rewritten from C code given by the [project resources](https://github.com/TTK4145/Project-resources)
 
 
